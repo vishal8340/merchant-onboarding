@@ -1,0 +1,52 @@
+{
+  "mappings": [
+    {
+      "name": "Mastercard MATCH - Inquiry (NOT on terminated list)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/match/v1/merchants/terminations/inquiries"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "merchant": {
+            "name": "{{jsonPath request.body '$.merchant.name'}}",
+            "doingBusinessAsName": null,
+            "merchantCategoryCode": "{{jsonPath request.body '$.merchant.merchantCategoryCode'}}",
+            "terminations": []
+          },
+          "principals": [],
+          "matchFound": false,
+          "hitList": []
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Mastercard MATCH - Inquiry (TERMINATED merchant simulation)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/match/v1/merchants/terminations/inquiries",
+        "bodyPatterns": [
+          { "contains": "TERMINATED_TEST" }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "matchFound": true,
+          "hitList": [
+            {
+              "terminationReasonCode": "02",
+              "terminationReasonDesc": "Fraudulent Prior Merchant",
+              "addedOn": "2023-06-15",
+              "addedByAcquirer": "TEST_ACQUIRER_001"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

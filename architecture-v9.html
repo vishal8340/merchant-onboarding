@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Merchant Onboarding — Architecture v10 · 30 Apr 2026</title>
+<style>
+  :root{
+    --bg:#f0f4f8;
+    --s1:#ffffff;
+    --s2:#f1f5f9;
+    --border:#d1dbe8;
+    --text:#1e293b;
+    --muted:#64748b;
+    --blue:#1d4ed8;
+    --blue-dim:#dbeafe;
+    --purple:#6d28d9;
+    --purple-dim:#ede9fe;
+    --green:#047857;
+    --green-dim:#d1fae5;
+    --amber:#92400e;
+    --amber-dim:#fef3c7;
+    --red:#b91c1c;
+    --red-dim:#fee2e2;
+    --teal:#0f766e;
+    --teal-dim:#ccfbf1;
+    --cyan:#0369a1;
+    --orange:#c2410c;
+    --indigo:#4338ca;
+    --amber-border:#d97706;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;padding:0 0 60px}
+  mono,code{font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:var(--teal);background:var(--s2);padding:1px 5px;border-radius:4px;word-break:break-all}
+
+  .page-header{
+    background:linear-gradient(135deg,#f0f6ff 0%,#f5f0ff 40%,#f0fdfc 100%);
+    border-bottom:1px solid var(--border);
+    padding:36px 48px 28px;
+  }
+  .page-title{
+    font-size:28px;font-weight:900;letter-spacing:-.02em;
+    background:linear-gradient(135deg,var(--blue) 0%,var(--purple) 50%,var(--teal) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    margin-bottom:6px;
+  }
+  .page-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+  .badge-row{display:flex;flex-wrap:wrap;gap:8px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid;cursor:default}
+  .badge-blue{background:var(--blue-dim);color:var(--blue);border-color:#93c5fd}
+  .badge-green{background:var(--green-dim);color:var(--green);border-color:#6ee7b7}
+  .badge-purple{background:var(--purple-dim);color:var(--purple);border-color:#c4b5fd}
+  .badge-amber{background:var(--amber-dim);color:var(--amber);border-color:var(--amber-border)}
+  .badge-red{background:var(--red-dim);color:var(--red);border-color:#fca5a5}
+  .badge-teal{background:var(--teal-dim);color:var(--teal);border-color:#5eead4}
+
+  .wrap{max-width:1600px;margin:0 auto;padding:0 32px}
+  .gap-section{margin-top:40px}
+  .sec-label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+  .sec-label::before{content:'';display:block;width:3px;height:16px;border-radius:2px;background:currentColor}
+
+  .card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px}
+  .card-sm{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px}
+
+  .chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;border:1px solid}
+  .chip-blue{background:var(--blue-dim);color:var(--blue);border-color:#93c5fd}
+  .chip-green{background:var(--green-dim);color:var(--green);border-color:#6ee7b7}
+  .chip-purple{background:var(--purple-dim);color:var(--purple);border-color:#c4b5fd}
+  .chip-amber{background:var(--amber-dim);color:var(--amber);border-color:var(--amber-border)}
+  .chip-red{background:var(--red-dim);color:var(--red);border-color:#fca5a5}
+  .chip-teal{background:var(--teal-dim);color:var(--teal);border-color:#5eead4}
+  .chip-gray{background:var(--s2);color:var(--muted);border-color:var(--border)}
+  .new-tag{display:inline-block;background:rgba(52,211,153,.15);color:var(--green);font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;letter-spacing:.06em;vertical-align:middle;margin-left:3px}
+  .new-tag.rb{background:rgba(251,146,60,.15);color:var(--orange)}
+
+  .stat-box{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+  .stat-num{font-size:28px;font-weight:900;line-height:1;margin-bottom:4px}
+  .stat-lbl{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px}
+  .stat-sub{font-size:10px;color:var(--muted)}
+
+  .tech-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:11px;background:var(--s2);border:1px solid var(--border)}
+
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:var(--s2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text);word-break:break-word;max-width:220px}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(0,0,0,.02)}
+
+  .col-grid-wrap{overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+  .col-grid{display:grid;grid-template-columns:minmax(210px,1fr) 44px minmax(210px,1fr) 44px minmax(210px,1fr) 44px minmax(210px,1fr) 44px minmax(210px,1fr);gap:0;align-items:start;margin-top:20px;min-width:1180px}
+  .layer{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;word-break:break-word}
+  .layer-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+  .lh-blue{background:var(--blue-dim);color:var(--blue)}
+  .lh-green{background:var(--green-dim);color:var(--green)}
+  .lh-amber{background:var(--amber-dim);color:var(--amber)}
+  .lh-purple{background:var(--purple-dim);color:var(--purple)}
+  .lh-orange{background:var(--orange-dim);color:var(--orange)}
+  .lh-port{font-size:9px;opacity:.8;font-weight:600;letter-spacing:.04em}
+  .layer-body{padding:12px;min-width:0}
+  .cb{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;min-width:0}
+  .cb:last-child{margin-bottom:0}
+  .cb-head{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .cb-icon{font-size:14px;flex-shrink:0}
+  .cb-name{font-size:11px;font-weight:800;color:var(--text);word-break:break-word}
+  .cb-sub{font-size:9px;color:var(--muted);margin-bottom:7px;padding-left:21px}
+  .cb-body ul{list-style:none;padding-left:0}
+  .cb-body ul li{font-size:10px;color:var(--muted);padding:1px 0;line-height:1.5;word-break:break-word;overflow-wrap:anywhere}
+  .cb-body ul li::before{content:"›";margin-right:5px;color:var(--border)}
+  .pub{font-size:9px;color:var(--green);margin-top:6px;padding:3px 7px;background:var(--green-dim);border-radius:5px;display:inline-block}
+
+  .col-conn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 0}
+  .conn-line{width:2px;height:40px;background:var(--border);position:relative}
+  .conn-lbl{font-size:9px;color:var(--muted);text-align:center;line-height:1.4}
+
+  .flow-list{display:flex;flex-direction:column;gap:0}
+  .flow-item{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)}
+  .flow-item:last-child{border-bottom:none}
+  .flow-num{min-width:28px;height:28px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--blue);flex-shrink:0}
+  .flow-num.guard{background:var(--red-dim);border-color:#fca5a5;color:var(--red)}
+  .flow-text{font-size:12px;color:var(--muted);line-height:1.7;padding-top:3px;word-break:break-word}
+
+  .guard-section{margin-top:36px;background:linear-gradient(135deg,var(--red-dim),var(--amber-dim));border:1px solid #fca5a5;border-radius:16px;overflow:hidden}
+  .guard-head{padding:14px 24px;background:var(--red-dim);border-bottom:1px solid #fca5a5;font-size:13px;font-weight:800;color:var(--red)}
+  .guard-body{padding:18px 24px}
+  .guard-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+  .guard-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px}
+  .guard-card-title{font-size:11px;font-weight:800;color:var(--amber);margin-bottom:8px}
+  .guard-card-body{font-size:11px;color:var(--muted);line-height:1.7}
+
+  .sm-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:20px;background:var(--s1);border-radius:12px;border:1px solid var(--border)}
+  .sm-node{padding:7px 14px;border-radius:8px;font-size:11px;font-weight:700}
+  .sm-arrow{color:var(--muted);font-size:18px;font-weight:300}
+  .sm-draft{background:var(--blue-dim);border:1px solid #93c5fd;color:var(--blue)}
+  .sm-sub{background:var(--amber-dim);border:1px solid var(--amber-border);color:var(--amber)}
+  .sm-proc{background:var(--purple-dim);border:1px solid #c4b5fd;color:var(--purple)}
+  .sm-approve{background:var(--green-dim);border:1px solid #6ee7b7;color:var(--green)}
+  .sm-manual{background:var(--amber-dim);border:1px solid var(--amber-border);color:var(--amber)}
+  .sm-reject{background:var(--red-dim);border:1px solid #fca5a5;color:var(--red)}
+  .sm-blocked{background:var(--red-dim);border:1px solid #fca5a5;color:var(--red)}
+  .sm-branch{display:flex;flex-direction:column;gap:8px}
+  .sm-rule{margin-top:14px;font-size:11px;color:var(--muted);line-height:1.8;padding:12px 16px;background:var(--s2);border-radius:10px;border:1px solid var(--border)}
+
+  .section{margin-top:36px;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .section-head{padding:12px 22px;background:var(--s2);font-size:12px;font-weight:800;color:var(--text);border-bottom:1px solid var(--border)}
+  .section-body{padding:18px 22px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .sub-block{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .sub-block-head{font-size:11px;font-weight:800;color:var(--text);margin-bottom:10px}
+  .sub-block-body ul{list-style:none}
+  .sub-block-body ul li{font-size:11px;color:var(--muted);padding:2px 0;line-height:1.6}
+  .sub-block-body ul li::before{content:"•";margin-right:6px;color:var(--border)}
+
+  .fallback-banner{background:linear-gradient(135deg,var(--amber-dim),var(--orange-dim));border:1.5px solid var(--amber-border);border-radius:12px;padding:14px 20px;display:flex;align-items:flex-start;gap:14px;margin-top:12px}
+  .fallback-banner-icon{font-size:22px;flex-shrink:0}
+  .fallback-banner-title{font-size:12px;font-weight:800;color:var(--amber);margin-bottom:4px}
+  .fallback-banner-text{font-size:11px;color:var(--muted);line-height:1.7}
+
+  .cost-bar-wrap{height:6px;background:var(--s2);border-radius:3px;overflow:hidden}
+  .cost-bar{height:100%;border-radius:3px}
+
+  .footer{text-align:center;padding:36px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:60px}
+
+  .glow-blue{box-shadow:0 0 0 1px rgba(29,78,216,.2),0 4px 24px rgba(29,78,216,.08)}
+  .glow-green{box-shadow:0 0 0 1px rgba(4,120,87,.2),0 4px 24px rgba(4,120,87,.08)}
+  .glow-purple{box-shadow:0 0 0 1px rgba(109,40,217,.2),0 4px 24px rgba(109,40,217,.08)}
+  .glow-amber{box-shadow:0 0 0 1px rgba(146,64,14,.25),0 4px 24px rgba(146,64,14,.08)}
+  .note{margin-top:10px;padding:8px 12px;background:var(--amber-dim);border-radius:8px;font-size:10px;color:var(--muted);border-left:3px solid var(--amber-border)}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">Merchant Onboarding &mdash; Architecture v10</div>
+  <div class="page-sub">Full-stack AI-powered BFSI platform &middot; BFSI Hackathon 2026 &middot; 30 April 2026</div>
+  <div class="badge-row">
+    <span class="badge badge-blue">&#9883; React 18</span>
+    <span class="badge badge-blue">&#128218; TypeScript</span>
+    <span class="badge badge-green">&#128994; Node.js &middot; Express 4 &middot; :3001</span>
+    <span class="badge badge-amber">&#128048; RabbitMQ &middot; Homebrew &middot; :5673 <span class="new-tag rb">NEW PORT</span></span>
+    <span class="badge badge-amber">&#9889; Direct Fallback Mode <span class="new-tag">NEW</span></span>
+    <span class="badge badge-purple">&#9749; Java 25 (Temurin)</span>
+    <span class="badge badge-purple">&#127807; Spring Boot 3.5</span>
+    <span class="badge badge-red">&#129504; Weka RandomForest + LIME</span>
+    <span class="badge badge-teal">&#129415; LangChain4j RAG</span>
+    <span class="badge badge-blue">&#9729; AWS Textract</span>
+    <span class="badge badge-purple">&#129302; EPAM DIAL &middot; gpt-4o</span>
+    <span class="badge badge-green">&#127807; MongoDB &middot; :27017</span>
+    <span class="badge badge-green">&#128176; ~68% AI cost savings</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════
+     01: FIVE-LAYER ARCHITECTURE
+═══════════════════════════════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--blue)">01 &nbsp; Five-Layer Architecture &mdash; End-to-End</div>
+  <div class="col-grid-wrap">
+  <div class="col-grid">
+
+    <!-- L1 BROWSER -->
+    <div class="layer glow-blue">
+      <div class="layer-head lh-blue"><span>LAYER 1 &mdash; BROWSER</span><span class="lh-port">:3000</span></div>
+      <div class="layer-body">
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#9883;</span><span class="cb-name">React 18 SPA</span></div>
+          <div class="cb-body"><ul>
+            <li>TypeScript &middot; Create React App</li>
+            <li>React.lazy + Suspense (code split)</li>
+            <li>React Router v6 &middot; ProtectedRoute</li>
+            <li>AuthContext &middot; JWT (sessionStorage)</li>
+            <li>Axios interceptor &mdash; Bearer on /api/*</li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#128209;</span><span class="cb-name">Key Pages</span></div>
+          <div class="cb-body"><ul>
+            <li>Dashboard (useMemo stats &amp; filter)</li>
+            <li>ApplicationForm &mdash; 2-step wizard</li>
+            <li>DocumentUpload &mdash; drag-and-drop</li>
+            <li>DocumentIntelligence</li>
+            <li>ApplicationStatus &mdash; backoff poll</li>
+            <li>ReviewConsole (React.memo)</li>
+            <li>TelemetryDashboard &mdash; 15 s refresh</li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#10003;</span><span class="cb-name">Form Validation</span></div>
+          <div class="cb-body"><ul>
+            <li>touched + validateField progressive</li>
+            <li>Errors shown after blur only</li>
+            <li>Debounced dup check 600 ms</li>
+            <li>Green &ldquo;All validated&rdquo; banner step 2</li>
+            <li>Exponential backoff poll 3 s&#8594;30 s</li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-conn">
+      <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+      <div class="conn-lbl">HTTP<br>REST<br>JWT</div>
+    </div>
+
+    <!-- L2 SERVER -->
+    <div class="layer glow-green">
+      <div class="layer-head lh-green"><span>LAYER 2 &mdash; SERVER</span><span class="lh-port">:3001</span></div>
+      <div class="layer-body">
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#128994;</span><span class="cb-name">Express 4 API</span></div>
+          <div class="cb-body"><ul>
+            <li>TypeScript &middot; ts-node &middot; nodemon</li>
+            <li>Helmet.js &mdash; CSP, HSTS, X-Frame</li>
+            <li>express-rate-limit: 10/15 min &middot; 100/60 s</li>
+            <li>requireAuth &middot; requireRole(ADMIN)</li>
+            <li>JWT (8 h) &middot; bcryptjs (rounds: 12)</li>
+            <li>multer: 5 MB &middot; PDF/JPG/PNG</li>
+            <li>CORS: http://localhost:3000</li>
+          </ul></div>
+        </div>
+        <div class="cb" style="border-color:var(--amber-border)">
+          <div class="cb-head"><span class="cb-icon">&#127932;</span><span class="cb-name">Orchestrator <span class="new-tag">UPDATED</span></span></div>
+          <div class="cb-body"><ul>
+            <li>OnboardingOrchestrator.ts</li>
+            <li>Publishes 3 parallel AMQP events</li>
+            <li>aggregateResults() + makeDecision()</li>
+            <li style="color:var(--amber)"><strong>registerDirectAgents()</strong> <span class="new-tag">NEW</span></li>
+            <li style="color:var(--amber)">Direct fallback &mdash; in-process Promise.all() when RabbitMQ unavailable <span class="new-tag">NEW</span></li>
+          </ul></div>
+        </div>
+        <div class="cb" style="border-color:var(--amber-border)">
+          <div class="cb-head"><span class="cb-icon">&#128268;</span><span class="cb-name">EventBus <span class="new-tag">UPDATED</span></span></div>
+          <div class="cb-body"><ul>
+            <li>amqplib 0.10.x &middot; topic exchange</li>
+            <li>Exchange: merchant.onboarding</li>
+            <li style="color:var(--amber)">DLQ enabled (Dead Letter Queue) <span class="new-tag">NEW</span></li>
+            <li>isConnected() health flag</li>
+            <li style="color:var(--amber)">Fallback: direct agent execution <span class="new-tag">NEW</span></li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#128451;</span><span class="cb-name">Persistence</span></div>
+          <div class="cb-body"><ul>
+            <li>MongoDB &middot; Mongoose &middot; merchant-onboarding</li>
+            <li>maxPoolSize:10, minPoolSize:2</li>
+            <li>Compound indexes: (status,name/email/phone)</li>
+            <li>ApplicationStorage fallback Map&lt;id,app&gt;</li>
+            <li>TelemetryService per-call</li>
+            <li>Uploads: /backend/uploads/</li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#9729;</span><span class="cb-name">TextractService</span></div>
+          <div class="cb-body"><ul>
+            <li>AnalyzeDocument &middot; FORMS</li>
+            <li>PDF &#8594; PNG (Ghostscript 200 DPI)</li>
+            <li>Promise.all() per-document parallel</li>
+            <li>Key-value extraction</li>
+            <li>Region: eu-west-1</li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-conn">
+      <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+      <div class="conn-lbl">AMQP<br>0-9-1<br>:5673</div>
+    </div>
+
+    <!-- L3 BROKER -->
+    <div class="layer glow-amber">
+      <div class="layer-head lh-amber"><span>LAYER 3 &mdash; BROKER</span><span class="lh-port">:5673 &middot; UI :15673</span></div>
+      <div class="layer-body">
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#128256;</span><span class="cb-name">Exchange</span></div>
+          <div class="cb-body"><ul>
+            <li><code>merchant.onboarding</code></li>
+            <li>Type: topic &middot; durable</li>
+            <li style="color:var(--amber)">DLQ: Dead Letter Queue enabled <span class="new-tag">NEW</span></li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#128364;</span><span class="cb-name">Queues &rarr; Routing Keys</span></div>
+          <div class="cb-body">
+            <table style="font-size:10px">
+              <tr style="background:transparent"><th style="font-size:9px;padding:4px 6px">Queue</th><th style="font-size:9px;padding:4px 6px">Routing Key</th><th style="font-size:9px;padding:4px 6px">Consumer</th></tr>
+              <tr><td style="padding:4px 6px;border-color:#1a2340">kyc.verification</td><td style="padding:4px 6px;border-color:#1a2340">agent.kyc</td><td style="padding:4px 6px;border-color:#1a2340">KYC Agent</td></tr>
+              <tr><td style="padding:4px 6px;border-color:#1a2340">mcc.categorization</td><td style="padding:4px 6px;border-color:#1a2340">agent.mcc</td><td style="padding:4px 6px;border-color:#1a2340">MCC Agent</td></tr>
+              <tr><td style="padding:4px 6px;border-color:#1a2340">risk.assessment</td><td style="padding:4px 6px;border-color:#1a2340">agent.risk</td><td style="padding:4px 6px;border-color:#1a2340">Risk Agent</td></tr>
+              <tr><td style="padding:4px 6px;border-bottom:none">agent.results</td><td style="padding:4px 6px;border-bottom:none">result.*</td><td style="padding:4px 6px;border-bottom:none">Orchestrator</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="cb" style="border-color:var(--amber-border)">
+          <div class="cb-head"><span class="cb-icon">&#127866;</span><span class="cb-name">Homebrew (macOS) <span class="new-tag rb">UPDATED</span></span></div>
+          <div class="cb-body"><ul>
+            <li style="color:var(--amber)">AMQP port: <strong>5673</strong> (was 5672)</li>
+            <li style="color:var(--amber)">Management UI: <strong>15673</strong></li>
+            <li>conf: /opt/homebrew/etc/rabbitmq/</li>
+            <li>listeners.tcp.default = 5673</li>
+            <li>admin / admin123</li>
+            <li>Replaces Docker &mdash; avoids port conflict with Docker Desktop proxy on 5672</li>
+          </ul></div>
+        </div>
+        <div class="fallback-banner">
+          <div class="fallback-banner-icon">&#9889;</div>
+          <div>
+            <div class="fallback-banner-title">Fallback Mode &mdash; Direct In-Process Execution</div>
+            <div class="fallback-banner-text">
+              If RabbitMQ is unreachable (<code>isConnected() === false</code>), Orchestrator calls
+              <code>registerDirectAgents()</code> and runs KYC, MCC and Risk via <code>Promise.all()</code>
+              directly in-process &mdash; no message queue required.<br>
+              <span style="color:var(--text)">server.ts logs:</span> <code>[Server] Running without event system (fallback mode)</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-conn">
+      <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+      <div class="conn-lbl">consume<br>parallel</div>
+    </div>
+
+    <!-- L4 AI AGENTS -->
+    <div class="layer glow-purple">
+      <div class="layer-head lh-purple"><span>LAYER 4 &mdash; AI AGENTS</span><span class="lh-port">Node.js process</span></div>
+      <div class="layer-body">
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#128269;</span><span class="cb-name">KYC Agent</span></div>
+          <div class="cb-body"><ul>
+            <li>Cross-validate Textract KV vs form</li>
+            <li>businessName + taxId check</li>
+            <li>Document quality score</li>
+            <li>Disposable email detection</li>
+            <li><strong>Conditional DIAL</strong> &mdash; skip GPT-4o if score &ge; 85 (~60% apps)</li>
+            <li>Compressed prompt: KV &le; 800 chars</li>
+            <li>Score 0&ndash;100 + narrative</li>
+          </ul><p class="pub">Publishes &rarr; <code>result.kyc</code></p></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#127991;</span><span class="cb-name">MCC Agent</span></div>
+          <div class="cb-body"><ul>
+            <li>Rule-based MCC lookup by businessType</li>
+            <li>Textract keyword scan</li>
+            <li>RAG via mcc-analyser :8091 (gpt-4o-mini)</li>
+            <li>3 retries + exp. backoff (1 s&rarr;4 s)</li>
+            <li><strong>Conditional DIAL</strong> &mdash; skip if RAG conf &ge; 0.6 (~85% apps)</li>
+            <li>&#9888; DIAL fallback only if confidence &lt; 0.6</li>
+          </ul><p class="pub">Publishes &rarr; <code>result.mcc</code></p></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#9878;</span><span class="cb-name">Risk Agent</span></div>
+          <div class="cb-body"><ul>
+            <li>Country + business risk rules</li>
+            <li>Fraud keyword scan (gambling, crypto&hellip;)</li>
+            <li><strong>Sequential ML-first:</strong> Weka ML always runs</li>
+            <li><strong>Conditional DIAL</strong> &mdash; GPT-4o only if HIGH or MANUAL_REVIEW (~30%)</li>
+            <li>~70% of apps (LOW/MEDIUM) skip DIAL</li>
+            <li>LIME explainer always runs</li>
+            <li>Score 0&ndash;100 + narrative</li>
+          </ul><p class="pub">Publishes &rarr; <code>result.risk</code></p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-conn">
+      <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+      <div class="conn-lbl">HTTP<br>REST</div>
+    </div>
+
+    <!-- L5 AI SERVICES -->
+    <div class="layer">
+      <div class="layer-head lh-orange"><span>LAYER 5 &mdash; AI SERVICES</span><span class="lh-port">Java 25</span></div>
+      <div class="layer-body">
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#127991;</span><span class="cb-name">MCC Analyser</span></div>
+          <div class="cb-sub">Spring Boot 3.5 &middot; :8091</div>
+          <div class="cb-body"><ul>
+            <li><code>POST /api/v1/onboarding/classify</code></li>
+            <li>LangChain4j RAG pipeline</li>
+            <li>MCC Handbook PDF indexed</li>
+            <li>text-embedding-3-small</li>
+            <li><strong>gpt-4o-mini</strong> via EPAM AI Proxy (87% cheaper)</li>
+            <li>@Lazy beans &rarr; startup safe</li>
+            <li>ConcurrentHashMap cache (conf &ge; 0.6)</li>
+            <li>Cache key: description|location</li>
+            <li>Fallback: confidence=0.0</li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#9878;</span><span class="cb-name">Smart Risk Scoring</span></div>
+          <div class="cb-sub">Spring Boot 3.5 &middot; :8080</div>
+          <div class="cb-body"><ul>
+            <li><code>POST /api/risk/score</code></li>
+            <li>Weka RandomForest (risk_model.ser)</li>
+            <li>10 features &middot; ML score always runs</li>
+            <li>LIME explainer (feature importance)</li>
+            <li>GPT-4o LLM report &mdash; only if HIGH risk</li>
+            <li><code>CompletableFuture.supplyAsync()</code></li>
+            <li>LIME + LLM in parallel</li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#9729;</span><span class="cb-name">AWS Textract</span></div>
+          <div class="cb-body"><ul>
+            <li>AnalyzeDocument &middot; FORMS</li>
+            <li>PDF&rarr;PNG via Ghostscript (200 DPI)</li>
+            <li>Key-value extraction per page</li>
+            <li>Region: eu-west-1</li>
+          </ul></div>
+        </div>
+        <div class="cb">
+          <div class="cb-head"><span class="cb-icon">&#129302;</span><span class="cb-name">EPAM AI DIAL</span></div>
+          <div class="cb-body"><ul>
+            <li>ai-proxy.lab.epam.com</li>
+            <li>Model: gpt-4o (DIAL_MODEL env)</li>
+            <li>Header: <code>Api-Key: ...</code></li>
+            <li>Keep-alive HTTP agent (maxSockets:20)</li>
+            <li>Used by KYC, MCC, Risk agents</li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /col-grid -->
+  </div><!-- /col-grid-wrap -->
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     02: AI PIPELINE
+═══════════════════════════════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--purple)">02 &nbsp; AI Pipeline &mdash; Step by Step</div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:start">
+    <div style="border:1.5px solid var(--border);border-radius:14px 0 0 14px;border-right:none;padding:18px 16px;background:var(--s1)">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;margin-bottom:10px">STEP 1</div>
+      <div style="font-size:22px;margin-bottom:8px">&#128228;</div>
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px">Upload Docs</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">Merchant uploads Business License (required) + optional docs. multer saves to /uploads/</div>
+      <div style="margin-top:10px"><span class="chip chip-blue" style="font-size:9px">multipart/form-data</span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:8px 0"><div style="font-size:24px;color:var(--muted)">&#9658;</div></div>
+    <div style="border:1.5px solid var(--amber-border);border-radius:0;border-right:none;padding:18px 16px;background:rgba(251,191,36,.03)">
+      <div style="font-size:10px;font-weight:800;color:var(--amber);letter-spacing:.1em;margin-bottom:10px">STEP 2</div>
+      <div style="font-size:22px;margin-bottom:8px">&#9729;</div>
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px">AWS Textract OCR</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">Calls <code>AnalyzeDocument</code> per PNG. Extracts text, FORMS, key-value pairs. Promise.all() parallel per-doc.</div>
+      <div style="margin-top:10px"><span class="chip chip-amber" style="font-size:9px">AI-OCR &middot; async</span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:8px 0"><div style="font-size:24px;color:var(--muted)">&#9658;</div></div>
+    <div style="border:1.5px solid var(--border);border-radius:0 14px 14px 0;border-left:none;padding:18px 16px;background:var(--s1)">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;margin-bottom:10px">STEP 3</div>
+      <div style="font-size:22px;margin-bottom:8px">&#128048;</div>
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px">Event Dispatch</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">Orchestrator publishes 3 parallel messages to RabbitMQ <strong>:5673</strong>. If unavailable &rarr; direct in-process fallback.</div>
+      <div style="margin-top:10px"><span class="chip chip-green" style="font-size:9px">parallel &middot; AMQP</span></div>
+    </div>
+  </div>
+
+  <div style="height:12px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+
+    <div style="border:1.5px solid #93c5fd;border-radius:14px;overflow:hidden">
+      <div style="background:var(--blue-dim);padding:12px 16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">&#128269;</span>
+        <div><div style="font-size:13px;font-weight:800;color:var(--blue)">KYC Agent</div><div style="font-size:10px;color:rgba(96,165,250,.7)">Identity Verification</div></div>
+        <span class="chip chip-blue" style="margin-left:auto;font-size:9px">EPAM DIAL &middot; GPT-4o</span>
+      </div>
+      <div style="padding:14px 16px;background:var(--s1)">
+        <div style="font-size:11px;color:var(--muted);line-height:1.8">
+          &#10022; Cross-validates businessName, taxId with Textract KV pairs<br>
+          &#10022; Checks email domain for disposable providers<br>
+          &#10022; Verifies phone format, website reachability<br>
+          &#10022; <strong style="color:var(--green)">&#9889; Conditional DIAL</strong> &mdash; skips LLM if score &ge; 85 &amp; all checks pass (~60% of apps)<br>
+          &#10022; <strong>Output:</strong> KYC score 0&ndash;100, findings[], PASSED/FAILED/MANUAL_REVIEW_REQUIRED
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:8px;font-size:10px;color:var(--muted)">
+          <div style="color:var(--blue);font-weight:700;margin-bottom:4px">AI Call (Conditional)</div>
+          <code>POST DIAL /chat/completions</code><br>
+          Model: <strong>gpt-4o</strong> &middot; Tokens: ~200&ndash;400 &middot; <span style="color:var(--green)">60% apps skip LLM</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="border:1.5px solid #c4b5fd;border-radius:14px;overflow:hidden">
+      <div style="background:var(--purple-dim);padding:12px 16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">&#127991;</span>
+        <div><div style="font-size:13px;font-weight:800;color:var(--purple)">MCC Agent</div><div style="font-size:10px;color:rgba(167,139,250,.7)">Category Code Classification</div></div>
+        <span class="chip chip-purple" style="margin-left:auto;font-size:9px">RAG + DIAL</span>
+      </div>
+      <div style="padding:14px 16px;background:var(--s1)">
+        <div style="font-size:11px;color:var(--muted);line-height:1.8">
+          &#10022; Rule-based MCC lookup + Textract keyword scan<br>
+          &#10022; Calls <strong style="color:var(--purple)">mcc-analyser :8091</strong> with 3 retries + exp. backoff (1 s&rarr;4 s)<br>
+          &#10022; <strong style="color:var(--green)">&#9889; ConcurrentHashMap cache</strong> &mdash; keyed by description|location (conf &ge; 0.6)<br>
+          &#10022; <strong style="color:var(--green)">&#9889; Conditional DIAL</strong> &mdash; skips LLM if RAG confidence &ge; 0.6 (~85% of apps)<br>
+          &#10022; <strong>Output:</strong> mccCode, confidence, detectedRisks, isFallback
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:8px;font-size:10px;color:var(--muted)">
+          <div style="color:var(--purple);font-weight:700;margin-bottom:4px">AI Calls (conditional)</div>
+          <code>POST :8091/api/v1/onboarding/classify</code><br>
+          &rarr; LangChain4j RAG: <strong>gpt-4o-mini</strong> (87% cheaper)<br>
+          &rarr; EPAM DIAL: gpt-4o (fallback only) &middot; <span style="color:var(--green)">85% apps skip DIAL</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="border:1.5px solid #fca5a5;border-radius:14px;overflow:hidden">
+      <div style="background:var(--red-dim);padding:12px 16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">&#9878;</span>
+        <div><div style="font-size:13px;font-weight:800;color:var(--red)">Risk Agent</div><div style="font-size:10px;color:rgba(248,113,113,.7)">ML + LLM Risk Scoring</div></div>
+        <span class="chip chip-red" style="margin-left:auto;font-size:9px">Weka + DIAL</span>
+      </div>
+      <div style="padding:14px 16px;background:var(--s1)">
+        <div style="font-size:11px;color:var(--muted);line-height:1.8">
+          &#10022; Checks country jurisdiction, business type risk flags<br>
+          &#10022; Scans Textract text for high-risk keywords (gambling, crypto&hellip;)<br>
+          &#10022; <strong style="color:var(--green)">&#9889; Sequential ML-first</strong> &mdash; Weka ML runs first, DIAL only if HIGH/MANUAL_REVIEW<br>
+          &#10022; ~70% of apps (LOW/MEDIUM) skip the LLM call entirely<br>
+          &#10022; LIME explainer always runs alongside ML<br>
+          &#10022; <strong>Output:</strong> riskScore, riskLevel LOW/MEDIUM/HIGH
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:8px;font-size:10px;color:var(--muted)">
+          <div style="color:var(--red);font-weight:700;margin-bottom:4px">AI Calls (conditional sequential)</div>
+          <code>POST :8080/api/risk/score</code><br>
+          &rarr; Weka RandomForest (no LLM) &mdash; always<br>
+          &rarr; EPAM DIAL: gpt-4o &mdash; only HIGH/MANUAL_REVIEW &middot; <span style="color:var(--green)">70% skip DIAL</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:14px;background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(167,139,250,.06));border:1.5px solid var(--border);border-radius:14px;padding:18px 24px;display:flex;align-items:center;gap:20px">
+    <div style="font-size:32px">&#10003;</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px">Final Decision Engine</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.7">
+        Orchestrator aggregates all 3 results via <code>makeDecision()</code>.
+        If all PASSED &rarr; <span class="chip chip-green" style="font-size:9px">APPROVED</span> &nbsp;
+        If any MANUAL_REVIEW_REQUIRED &rarr; <span class="chip chip-amber" style="font-size:9px">MANUAL REVIEW</span> &nbsp;
+        If any FAILED &rarr; <span class="chip chip-red" style="font-size:9px">REJECTED</span>. Human reviewer can override in Review Console.
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-shrink:0">
+      <div style="text-align:center;padding:10px 14px;background:var(--green-dim);border-radius:10px;border:1px solid #6ee7b7">
+        <div style="font-size:16px;font-weight:900;color:var(--green)">APPROVED</div>
+        <div style="font-size:9px;color:var(--muted)">all score &ge; 85</div>
+      </div>
+      <div style="text-align:center;padding:10px 14px;background:var(--amber-dim);border-radius:10px;border:1px solid #fcd34d">
+        <div style="font-size:16px;font-weight:900;color:var(--amber)">REVIEW</div>
+        <div style="font-size:9px;color:var(--muted)">any flag raised</div>
+      </div>
+      <div style="text-align:center;padding:10px 14px;background:var(--red-dim);border-radius:10px;border:1px solid #fca5a5">
+        <div style="font-size:16px;font-weight:900;color:var(--red)">REJECTED</div>
+        <div style="font-size:9px;color:var(--muted)">critical fail</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     03: AI USAGE & COST
+═══════════════════════════════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--amber)">03 &nbsp; AI Usage &middot; Cost &middot; Tokens</div>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px">
+    <div class="stat-box"><div class="stat-num" style="color:var(--purple)">5</div><div class="stat-lbl">AI Services</div><div class="stat-sub">Used per application</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--blue)">~5k</div><div class="stat-lbl">Tokens / App</div><div class="stat-sub">Avg across all agents</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--green)">$0.018</div><div class="stat-lbl">Cost / App</div><div class="stat-sub">After optimisations</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--amber)">3</div><div class="stat-lbl">LLM Calls</div><div class="stat-sub">via EPAM DIAL</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--teal)">1</div><div class="stat-lbl">RAG Pipeline</div><div class="stat-sub">MCC Handbook PDF</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--cyan)">68%</div><div class="stat-lbl">Cost Saved</div><div class="stat-sub">vs. naive approach</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
+    <table>
+      <thead>
+        <tr><th>AI Service</th><th>Provider</th><th>Model / API</th><th>Purpose</th><th>Avg Tokens</th><th>Est. Cost / Call</th><th>Calls / App</th><th>Total / App</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="chip chip-amber">&#9729; AWS Textract</span></td>
+          <td>Amazon Web Services</td>
+          <td><code>AnalyzeDocument &middot; FORMS</code></td>
+          <td>OCR &mdash; extract text, forms, KV pairs from uploaded documents</td>
+          <td>N/A (per page)</td>
+          <td style="color:var(--amber)">$0.0065/pg (AnalyzeDoc)</td>
+          <td>1&ndash;5 docs &middot; 1&ndash;10 pages</td>
+          <td style="color:var(--amber);font-weight:700">~$0.007&ndash;0.07</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-purple">&#127991; MCC Analyser RAG</span></td>
+          <td>EPAM AI Proxy<br><span style="font-size:10px;color:var(--muted)">ai-proxy.lab.epam.com</span></td>
+          <td><code>gpt-4o-mini<br>text-embedding-3-small</code></td>
+          <td>RAG classification against MCC Handbook PDF &mdash; assigns 4-digit MCC code + risks</td>
+          <td>In: ~800 &middot; Out: ~400<br>Embed: ~150</td>
+          <td style="color:var(--purple)">~$0.001 (gpt-4o-mini)</td>
+          <td>1</td>
+          <td style="color:var(--purple);font-weight:700">~$0.001</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-blue">&#128269; KYC &mdash; DIAL</span></td>
+          <td>EPAM DIAL</td>
+          <td><code>gpt-4o</code></td>
+          <td>KYC verification &mdash; conditional: skipped 60% of apps</td>
+          <td>In: ~600 &middot; Out: ~300<br>(conditional)</td>
+          <td style="color:var(--blue)">~$0.005 (when called)</td>
+          <td>0.4 avg (40% apps)</td>
+          <td style="color:var(--blue);font-weight:700">~$0.002</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-amber">&#127991; MCC &mdash; DIAL</span></td>
+          <td>EPAM DIAL</td>
+          <td><code>gpt-4o</code></td>
+          <td>Secondary MCC validator &mdash; only if RAG conf &lt; 0.6. 85% of apps skip.</td>
+          <td>In: ~700 &middot; Out: ~200<br>(conditional)</td>
+          <td style="color:var(--amber)">~$0.006 (when called)</td>
+          <td>0.15 avg (15% apps)</td>
+          <td style="color:var(--amber);font-weight:700">~$0.001</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-red">&#9878; Risk &mdash; DIAL</span></td>
+          <td>EPAM AI Proxy</td>
+          <td><code>gpt-4o</code></td>
+          <td>Risk reasoning &mdash; only if HIGH risk or MANUAL_REVIEW. 70% apps skip.</td>
+          <td>In: ~500 &middot; Out: ~250<br>(conditional)</td>
+          <td style="color:var(--red)">~$0.004 (when called)</td>
+          <td>0.30 avg (30% apps)</td>
+          <td style="color:var(--red);font-weight:700">~$0.001</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-teal">&#9878; Risk &mdash; Weka ML</span></td>
+          <td>Self-hosted</td>
+          <td><code>Weka RandomForest<br>risk_model.ser</code></td>
+          <td>ML-based risk scoring &mdash; always runs. No LLM tokens.</td>
+          <td>N/A (no LLM)</td>
+          <td style="color:var(--green)">$0.00</td>
+          <td>1</td>
+          <td style="color:var(--green);font-weight:700">$0.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em">Total per Application (Optimised)</div>
+      <div style="font-size:32px;font-weight:900;color:var(--green);margin-top:4px">~$0.009 &ndash; $0.035</div>
+      <div style="font-size:11px;color:var(--muted)">Was $0.025&ndash;$0.09 before optimisations &nbsp;&middot;&nbsp; <strong style="color:var(--teal)">68% savings</strong></div>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--amber)">AWS Textract</span><span>35%</span></div><div class="cost-bar-wrap"><div class="cost-bar" style="width:35%;background:var(--amber)"></div></div></div>
+      <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--purple)">MCC Analyser RAG</span><span>30%</span></div><div class="cost-bar-wrap"><div class="cost-bar" style="width:30%;background:var(--purple)"></div></div></div>
+      <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--blue)">KYC DIAL</span><span>22%</span></div><div class="cost-bar-wrap"><div class="cost-bar" style="width:22%;background:var(--blue)"></div></div></div>
+      <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--amber)">MCC DIAL (fallback)</span><span>8%</span></div><div class="cost-bar-wrap"><div class="cost-bar" style="width:8%;background:var(--amber)"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--red)">Risk DIAL (cond.)</span><span>5%</span></div><div class="cost-bar-wrap"><div class="cost-bar" style="width:5%;background:var(--red)"></div></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:180px">
+      <div style="padding:10px 14px;background:var(--s2);border-radius:10px;border:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">1,000 apps / month</div><div style="font-size:20px;font-weight:800;color:var(--text);margin-top:2px">~$9 &ndash; $35</div></div>
+      <div style="padding:10px 14px;background:var(--s2);border-radius:10px;border:1px solid var(--border)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">10,000 apps / month</div><div style="font-size:20px;font-weight:800;color:var(--text);margin-top:2px">~$90 &ndash; $350</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     04: DUPLICATE GUARD
+═══════════════════════════════════════ -->
+<div class="guard-section" style="margin-top:40px">
+  <div class="guard-head">&#128680; &nbsp; MULTI-LAYER DUPLICATE MERCHANT GUARD &mdash; NEW in v9</div>
+  <div class="guard-body">
+    <div class="guard-grid">
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 1 &mdash; Real-Time Validation</div>
+        <div class="guard-card-body">
+          <code>POST /api/validate-merchant</code><br>
+          Called at Step 1&rarr;2 transition (businessName) and on final submit (all fields).<br>
+          No application record created. Returns <code>isDuplicate</code> + <code>duplicateFields[]</code>.<br>
+          Shows inline 2-line amber error banner. Blocks Next / Submit buttons.
+        </div>
+      </div>
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 2 &mdash; Application Creation Guard</div>
+        <div class="guard-card-body">
+          <code>POST /api/applications</code><br>
+          Checks APPROVED merchants before inserting DRAFT record.<br>
+          Returns <code>HTTP 409 MERCHANT_ALREADY_ACTIVE</code> if match found.<br>
+          Frontend maps 409 to inline error + resets to offending step.
+        </div>
+      </div>
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 3 &mdash; Document Upload Page</div>
+        <div class="guard-card-body">
+          <code>GET /api/applications/:id/duplicate-check</code><br>
+          Called on page load of Upload Documents screen.<br>
+          Sets blocking overlay modal &mdash; user cannot upload or submit.<br>
+          Helper: <code>checkDuplicateForApp(appId)</code> excludes self.
+        </div>
+      </div>
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 4 &mdash; Pre-Textract Submit Guard</div>
+        <div class="guard-card-body">
+          <code>POST /api/applications/:id/submit</code><br>
+          Final check before Textract runs &amp; agents are invoked.<br>
+          Blocks submission even if layers 1&ndash;3 were bypassed.<br>
+          Returns <code>HTTP 409</code> &mdash; prevents duplicate from entering pipeline.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     05: E2E REQUEST FLOW
+═══════════════════════════════════════ -->
+<div class="section" style="margin-top:40px">
+  <div class="section-head">&#128204; &nbsp; End-to-End Request Flow (14 Steps)</div>
+  <div class="section-body">
+    <div class="flow-list">
+      <div class="flow-item"><div class="flow-num">1</div><div class="flow-text">User logs in &rarr; <code>POST /auth/login</code> &rarr; bcrypt.compare (rounds 12) &rarr; <strong>JWT issued (8 h)</strong> &rarr; stored in AuthContext &rarr; ProtectedRoute guards all views</div></div>
+      <div class="flow-item"><div class="flow-num guard">&#9940;</div><div class="flow-text"><strong>GUARD L1:</strong> User fills Step 1 &rarr; clicks Next &rarr; <code>POST /api/validate-merchant {businessName}</code> &rarr; if APPROVED match found: <strong>inline error shown, step blocked</strong></div></div>
+      <div class="flow-item"><div class="flow-num">2</div><div class="flow-text">User completes Step 2 &rarr; clicks Submit &rarr; <code>POST /api/validate-merchant {businessName, email, phone}</code> &rarr; no duplicate &rarr; <code>POST /api/applications</code> &rarr; saved as <strong>DRAFT</strong> in MongoDB</div></div>
+      <div class="flow-item"><div class="flow-num guard">&#9940;</div><div class="flow-text"><strong>GUARD L2:</strong> <code>POST /api/applications</code> re-checks APPROVED merchants on server side &rarr; returns <code>HTTP 409</code> on match &rarr; frontend shows inline error + resets to offending step</div></div>
+      <div class="flow-item"><div class="flow-num">3</div><div class="flow-text">User navigates to <strong>Upload Documents</strong> &rarr; page loads &rarr; <code>GET /api/applications/:id/duplicate-check</code> &rarr; if duplicate: <strong>blocking modal overlay</strong> appears, upload disabled</div></div>
+      <div class="flow-item"><div class="flow-num">4</div><div class="flow-text">User uploads documents &rarr; <code>POST /api/applications/:id/documents</code> &rarr; <strong>Multer</strong> saves to <code>/uploads/</code> &rarr; PDF&rarr;PNG via Ghostscript (200 DPI) &rarr; EPAM AI DIAL validates doc type (GPT-4o) &rarr; 422 on mismatch</div></div>
+      <div class="flow-item"><div class="flow-num guard">&#9940;</div><div class="flow-text"><strong>GUARD L4:</strong> User clicks Submit &rarr; <code>POST /api/applications/:id/submit</code> &rarr; final server-side duplicate check before Textract runs &rarr; HTTP 409 if match &rarr; no pipeline invoked</div></div>
+      <div class="flow-item"><div class="flow-num">5</div><div class="flow-text">Submit accepted &rarr; status &rarr; <strong>SUBMITTED</strong> &middot; <strong>AWS Textract</strong> AnalyzeDocument (FORMS) called per PNG via <code>Promise.all()</code> &mdash; all documents in parallel &rarr; key-value pairs extracted</div></div>
+      <div class="flow-item"><div class="flow-num">6</div><div class="flow-text"><strong>Orchestrator</strong> publishes 3 parallel messages: <code>agent.kyc</code>, <code>agent.mcc</code>, <code>agent.risk</code> to RabbitMQ <strong>:5673</strong> (Homebrew). If RabbitMQ unavailable &rarr; <span style="color:var(--amber)">direct in-process fallback via <code>registerDirectAgents()</code></span> &middot; status &rarr; <strong>PROCESSING</strong></div></div>
+      <div class="flow-item"><div class="flow-num">7</div><div class="flow-text"><strong>KYC Agent</strong> consumes <code>kyc.verification</code> &rarr; cross-validates Textract KV vs. form &rarr; <strong>if score &ge; 85 &amp; all checks pass: skips DIAL (~60% apps)</strong>; else calls <strong>EPAM AI DIAL</strong> (GPT-4o) &rarr; publishes <code>result.kyc</code></div></div>
+      <div class="flow-item"><div class="flow-num">8</div><div class="flow-text"><strong>MCC Agent</strong> consumes <code>mcc.categorization</code> &rarr; calls <strong>MCC Analyser :8091</strong> (LangChain4j RAG + <strong>gpt-4o-mini</strong> + ConcurrentHashMap cache) with 3 retries + exp. backoff &rarr; <strong>if RAG conf &ge; 0.6: skips DIAL (~85% apps)</strong>; else EPAM DIAL fallback &rarr; publishes <code>result.mcc</code></div></div>
+      <div class="flow-item"><div class="flow-num">9</div><div class="flow-text"><strong>Risk Agent</strong> consumes <code>risk.assessment</code> &rarr; country/fraud flags &rarr; Step 1: <strong>Smart Risk Scoring :8080</strong> (Weka RandomForest + LIME) always runs &rarr; Step 2: <strong>if LOW/MEDIUM risk: skips DIAL (~70% apps)</strong>; if HIGH/MANUAL_REVIEW: calls <strong>EPAM AI DIAL</strong> (GPT-4o) &rarr; publishes <code>result.risk</code></div></div>
+      <div class="flow-item"><div class="flow-num">10</div><div class="flow-text">Orchestrator collects all 3 results &rarr; <strong><code>makeDecision()</code></strong> &rarr; <strong>APPROVED</strong>, <strong>REJECTED</strong>, or <strong>MANUAL_REVIEW</strong> &middot; Telemetry recorded (tokens, latency, cost) per call</div></div>
+      <div class="flow-item"><div class="flow-num">11</div><div class="flow-text">If <strong>AUTO APPROVED</strong> &rarr; <code>generateMerchantCredentials()</code> &rarr; Merchant ID (<code>MID-XXXX&hellip;</code>) + 12-char password stored &middot; <code>findOneAndUpdate()</code> persists final state</div></div>
+      <div class="flow-item"><div class="flow-num">12</div><div class="flow-text">Frontend polls <code>GET /api/applications/:id</code> with <strong>exponential backoff</strong> (starts 3 s, doubles, caps at 30 s) &rarr; stops on terminal status &middot; TelemetryDashboard auto-refreshes every 15 s</div></div>
+      <div class="flow-item"><div class="flow-num">13</div><div class="flow-text">If <strong>MANUAL_REVIEW</strong> &rarr; ReviewConsole queries <code>GET .../review/pending</code> &rarr; admin enters decision &rarr; <code>POST .../:id/review</code> &rarr; APPROVED (MID generated) or REJECTED</div></div>
+      <div class="flow-item"><div class="flow-num">14</div><div class="flow-text">Approved merchant views <code>POST .../:id/credentials</code> &rarr; returns <code>merchantId</code> + <code>merchantPassword</code> only if APPROVED &middot; HTTP 400 otherwise &middot; Credentials never regenerated</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     06: PERSISTENCE
+═══════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">&#128451; &nbsp; Persistence Layer</div>
+  <div class="section-body">
+    <div class="two-col">
+      <div class="sub-block">
+        <div class="sub-block-head">&#127807; MongoDB + Mongoose (primary)</div>
+        <div class="sub-block-body"><ul>
+          <li>Mongoose ODM &middot; DB: <code>merchant-onboarding</code></li>
+          <li>Collection: <code>applications</code> &mdash; inline schema &middot; timestamps</li>
+          <li>Collection: <code>users</code> &mdash; bcrypt hashed (rounds: 12)</li>
+          <li>Mixed[] for agentResults, documents, auditLog</li>
+          <li>Auto-detected via <code>readyState === 1</code></li>
+          <li><code>findOneAndUpdate</code> on agent completion</li>
+          <li>Case-insensitive regex for duplicate checks</li>
+          <li>Pool: <code>maxPoolSize:10, minPoolSize:2</code></li>
+          <li>Compound indexes: <code>(status,name)</code> <code>(status,email)</code> <code>(status,phone)</code></li>
+          <li>Pagination + <code>.lean()</code> on list queries</li>
+        </ul></div>
+      </div>
+      <div class="sub-block">
+        <div class="sub-block-head">&#128190; In-Memory Fallback + File Storage</div>
+        <div class="sub-block-body"><ul>
+          <li><code>ApplicationStorage</code> &mdash; <code>Map&lt;id, MerchantApplication&gt;</code></li>
+          <li>save / get / getAll / getPendingReview</li>
+          <li>Used when MongoDB unavailable</li>
+          <li>Telemetry stored in-memory per application</li>
+          <li>Uploaded files: <code>/backend/uploads/</code> (local disk)</li>
+          <li>Unique filename: <code>fieldname-ts-random.ext</code></li>
+          <li>TextractDocumentResult per document</li>
+          <li>Stores applications, agentResults, auditLog</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     07: TECH STACK
+═══════════════════════════════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--teal)">07 &nbsp; Full Tech Stack</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:22px">&#9883;</span>
+        <div><div style="font-size:14px;font-weight:800;color:var(--blue)">Frontend</div><div style="font-size:10px;color:var(--muted)">React &middot; TypeScript &middot; port 3000</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="tech-tag" style="color:var(--blue)">&#9883; React 18</span>
+        <span class="tech-tag" style="color:var(--blue)">&#128218; TypeScript</span>
+        <span class="tech-tag" style="color:var(--muted)">Create React App</span>
+        <span class="tech-tag" style="color:var(--muted)">React Router v6</span>
+        <span class="tech-tag" style="color:var(--muted)">Axios + interceptor</span>
+        <span class="tech-tag" style="color:var(--purple)">&#9889; React.lazy + Suspense</span>
+        <span class="tech-tag" style="color:var(--indigo)">useMemo stats/filter</span>
+        <span class="tech-tag" style="color:var(--cyan)">React.memo AgentCard</span>
+        <span class="tech-tag" style="color:var(--teal)">Backoff poll 3s&rarr;30s</span>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
+        <span style="color:var(--green)">&#10003; validateField + debounced dup check (600ms)</span><br>
+        <span style="color:var(--blue)">&#128273; Axios JWT interceptor &mdash; Bearer on every /api/ call</span><br>
+        <span style="color:var(--purple)">&#9889; React.lazy + Suspense (all routes lazy-loaded)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:22px">&#128994;</span>
+        <div><div style="font-size:14px;font-weight:800;color:var(--green)">Backend Orchestrator</div><div style="font-size:10px;color:var(--muted)">Node.js &middot; TypeScript &middot; port 3001</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="tech-tag" style="color:var(--green)">Node.js + Express 4</span>
+        <span class="tech-tag" style="color:var(--green)">TypeScript</span>
+        <span class="tech-tag" style="color:var(--muted)">ts-node + nodemon</span>
+        <span class="tech-tag" style="color:var(--muted)">amqplib 0.10.x</span>
+        <span class="tech-tag" style="color:var(--muted)">Mongoose (MongoDB)</span>
+        <span class="tech-tag" style="color:var(--muted)">multer 5 MB</span>
+        <span class="tech-tag" style="color:var(--muted)">JWT (8h) + bcryptjs(12)</span>
+        <span class="tech-tag" style="color:var(--red)">Helmet.js headers</span>
+        <span class="tech-tag" style="color:var(--amber)">express-rate-limit</span>
+        <span class="tech-tag" style="color:var(--blue)">requireAuth middleware</span>
+        <span class="tech-tag" style="color:var(--purple)">requireRole(ADMIN)</span>
+        <span class="tech-tag" style="color:var(--amber)">DirectFallback <span class="new-tag">NEW</span></span>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
+        KYCAgent &middot; MCCAgent (3 retries) &middot; RiskAgent<br>EventBus (DLQ) &middot; Orchestrator &middot; TextractService &middot; DIALService<br>
+        <span style="color:var(--amber)">&#9889; registerDirectAgents() &mdash; direct execution fallback <span class="new-tag">NEW</span></span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:22px">&#127959;</span>
+        <div><div style="font-size:14px;font-weight:800;color:var(--teal)">Infrastructure</div><div style="font-size:10px;color:var(--muted)">Homebrew &middot; Cloud &middot; Local</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="tech-tag" style="color:var(--amber)">RabbitMQ Homebrew <span class="new-tag rb">:5673</span></span>
+        <span class="tech-tag" style="color:var(--teal)">MongoDB local</span>
+        <span class="tech-tag" style="color:var(--muted)">Docker (Java services)</span>
+        <span class="tech-tag" style="color:var(--muted)">AWS Textract eu-west-1</span>
+        <span class="tech-tag" style="color:var(--muted)">Local file storage</span>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:var(--muted);line-height:2">
+        3000 &rarr; React Frontend<br>
+        3001 &rarr; Node.js Backend<br>
+        <span style="color:var(--amber)">5673 &rarr; RabbitMQ AMQP (Homebrew) <span class="new-tag rb">NEW</span></span><br>
+        <span style="color:var(--amber)">15673 &rarr; RabbitMQ Management UI</span><br>
+        27017 &rarr; MongoDB<br>
+        8091 &rarr; mcc-analyser<br>
+        8080 &rarr; smart-risk-scoring
+      </div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:22px">&#127991;</span>
+        <div><div style="font-size:14px;font-weight:800;color:var(--purple)">MCC Analyser Service</div><div style="font-size:10px;color:var(--muted)">Spring Boot 3.5 &middot; Java 25 (Temurin) &middot; :8091</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="tech-tag" style="color:var(--purple)">Java 25 (Temurin)</span>
+        <span class="tech-tag" style="color:var(--purple)">Spring Boot 3.5</span>
+        <span class="tech-tag" style="color:var(--muted)">LangChain4j</span>
+        <span class="tech-tag" style="color:var(--muted)">RAG PDF embed</span>
+        <span class="tech-tag" style="color:var(--green)">gpt-4o-mini (87% cheaper)</span>
+        <span class="tech-tag" style="color:var(--muted)">text-embedding-3-small</span>
+        <span class="tech-tag" style="color:var(--muted)">Lombok @Lazy</span>
+        <span class="tech-tag" style="color:var(--teal)">ConcurrentHashMap cache</span>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
+        <code>POST /api/v1/onboarding/classify</code><br>
+        Input: businessName, location, description<br>
+        Output: mccCode, confidence, reasoning, detectedRisks, handbookCitation<br>
+        <span style="color:var(--green)">&#9889; Result cached by description|location (conf &ge; 0.6)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:22px">&#9878;</span>
+        <div><div style="font-size:14px;font-weight:800;color:var(--red)">Smart Risk Scoring</div><div style="font-size:10px;color:var(--muted)">Spring Boot 3.5 &middot; Java 25 (Temurin) &middot; :8080</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="tech-tag" style="color:var(--red)">Java 25 (Temurin)</span>
+        <span class="tech-tag" style="color:var(--red)">Spring Boot 3.5</span>
+        <span class="tech-tag" style="color:var(--muted)">Weka RandomForest</span>
+        <span class="tech-tag" style="color:var(--muted)">LIME Explainer</span>
+        <span class="tech-tag" style="color:var(--muted)">LLM Risk Report (GPT-4o)</span>
+        <span class="tech-tag" style="color:var(--muted)">EPAM AI Proxy</span>
+        <span class="tech-tag" style="color:var(--muted)">Maven</span>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
+        <code>POST /api/risk/score</code> &nbsp;&middot;&nbsp; <code>GET /api/risk/health</code> &nbsp;&middot;&nbsp; <code>GET /api/risk/rules</code><br>
+        Input: merchant profile, MCC code, country<br>
+        Output: riskScore (0&ndash;100), riskLevel, riskFactors[], explanation<br>
+        <span style="color:var(--teal)">&#9889; LIME + LLM reports via <code>CompletableFuture.supplyAsync()</code></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     08: TECH STACK TABLE
+═══════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">&#128295; &nbsp; Tech Stack Reference Table</div>
+  <div class="section-body" style="padding:0">
+    <table>
+      <thead><tr><th>Layer</th><th>Technology</th><th>Version / Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Frontend Framework</td><td>React</td><td>18 &middot; TypeScript &middot; CRA &middot; React.lazy + Suspense code splitting</td></tr>
+        <tr><td>Routing</td><td>React Router</td><td>v6 &middot; BrowserRouter &middot; ProtectedRoute HOC</td></tr>
+        <tr><td>HTTP Client</td><td>axios</td><td>REST to Node backend &middot; auth header injected on all /api/ calls</td></tr>
+        <tr><td>Auth (Frontend)</td><td>AuthContext + JWT</td><td>Role-based: USER / ADMIN / APP_MANAGER &middot; UserHeader role badge</td></tr>
+        <tr><td>Backend Runtime</td><td>Node.js + Express</td><td>Express 4 &middot; TypeScript &middot; ts-node dev &middot; nodemon</td></tr>
+        <tr><td>Security Headers</td><td>Helmet.js</td><td>CSP, HSTS, X-Frame-Options, etc. &mdash; <code>app.use(helmet())</code></td></tr>
+        <tr><td>Rate Limiting</td><td>express-rate-limit</td><td>loginLimiter: 10 req/15 min &middot; apiLimiter: 100 req/60 s</td></tr>
+        <tr><td>Auth Middleware</td><td>requireAuth / requireRole</td><td>JWT verified on all <code>/api/*</code> &middot; role-gated admin endpoints</td></tr>
+        <tr><td>Authentication</td><td>JWT + bcryptjs</td><td>jsonwebtoken &middot; expiresIn: 8h &middot; bcrypt rounds: 12</td></tr>
+        <tr><td>Duplicate Guard</td><td>4-Layer Validation</td><td>Real-time &middot; 409 guard &middot; page-load check &middot; pre-submit final guard &middot; APPROVED-only scope</td></tr>
+        <tr><td>Database</td><td>MongoDB + Mongoose</td><td>localhost:27017 &middot; DB: merchant-onboarding &middot; inline schema &middot; timestamps &middot; maxPoolSize:10 &middot; compound indexes</td></tr>
+        <tr><td>In-Memory Fallback</td><td>ApplicationStorage</td><td>Map&lt;id, app&gt; &mdash; used when MongoDB down</td></tr>
+        <tr><td>File Upload</td><td>multer</td><td>diskStorage &middot; 5 MB &middot; PDF/JPG/PNG/JPEG</td></tr>
+        <tr><td>PDF Processing</td><td>Ghostscript</td><td>PDF&rarr;PNG &middot; 200 DPI &middot; first page &middot; system binary</td></tr>
+        <tr><td>OCR / Document AI</td><td>AWS Textract</td><td>AnalyzeDocument &middot; FORMS feature &middot; eu-west-1 &middot; KV extraction &middot; <code>Promise.all()</code> parallel</td></tr>
+        <tr style="background:rgba(251,191,36,.04)"><td style="color:var(--amber)">Message Broker <span class="new-tag rb">UPDATED</span></td><td style="color:var(--amber)">RabbitMQ (Homebrew macOS)</td><td style="color:var(--amber)">AMQP :5673 &middot; Management UI :15673 &middot; DLQ enabled &middot; topic exchange: merchant.onboarding &middot; admin/admin123 &middot; conf: /opt/homebrew/etc/rabbitmq/</td></tr>
+        <tr><td>AMQP Client</td><td>amqplib</td><td>0.10.x &middot; graceful fallback if unavailable</td></tr>
+        <tr style="background:rgba(251,191,36,.04)"><td style="color:var(--amber)">Orchestration <span class="new-tag">UPDATED</span></td><td style="color:var(--amber)">OnboardingOrchestrator</td><td style="color:var(--amber)">orchestrator.ts &middot; <strong>registerDirectAgents()</strong> &middot; direct in-process fallback via Promise.all() when RabbitMQ unavailable &middot; makeDecision()</td></tr>
+        <tr><td>MCC AI Service</td><td>Spring Boot + LangChain4j</td><td>Java 25 (Temurin) &middot; Spring Boot 3.5 &middot; :8091 &middot; @Lazy beans</td></tr>
+        <tr><td>MCC Knowledge Base</td><td>PDFBox + Embeddings</td><td>MCC_Handbook_Sample.pdf &middot; text-embedding-3-small &middot; in-memory vector store</td></tr>
+        <tr><td>Risk ML Service</td><td>Spring Boot + Weka</td><td>Java 25 &middot; Spring Boot 3.5 &middot; :8080 &middot; RandomForest &middot; risk_model.ser &middot; 10 features</td></tr>
+        <tr><td>ML Explainability</td><td>LIME Explainer</td><td>Feature importance &middot; human-readable breakdown &middot; parallel with LLM via <code>CompletableFuture</code></td></tr>
+        <tr><td>LLM &mdash; Agents</td><td>EPAM AI DIAL</td><td>ai-proxy.lab.epam.com &middot; gpt-4o (DIAL_MODEL env) &middot; Header: Api-Key &middot; keep-alive HTTP agent (maxSockets:20)</td></tr>
+        <tr><td>LLM &mdash; MCC RAG</td><td>EPAM AI Proxy &middot; gpt-4o-mini</td><td><strong>gpt-4o-mini</strong> &middot; text-embedding-3-small &middot; 87% cheaper &middot; compact 1-line system prompt &middot; ConcurrentHashMap result cache</td></tr>
+        <tr><td>Telemetry</td><td>TelemetryService</td><td>Per-call: tokens (real+BPE-est), latency, cost &middot; in-memory + MongoDB merge &middot; 15 s auto-refresh</td></tr>
+        <tr><td>AI Cost Savings</td><td>Conditional DIAL</td><td><strong>KYC:</strong> skip if score &ge; 85 (~60%) &middot; <strong>MCC:</strong> skip if RAG conf &ge; 0.6 (~85%) &middot; <strong>Risk:</strong> skip if LOW/MEDIUM (~70%) &middot; ~68% saving overall</td></tr>
+        <tr><td>Performance</td><td>Full-Stack Optimisations</td><td>React.lazy &middot; useMemo &middot; React.memo &middot; exp. backoff polling &middot; Promise.all Textract &middot; ML-first Risk &middot; CompletableFuture &middot; MongoDB pool+indexes &middot; DIAL keep-alive &middot; MCC ConcurrentHashMap cache</td></tr>
+        <tr><td>Type Safety</td><td>TypeScript</td><td>strict &middot; ES2020 &middot; skipLibCheck &middot; tsconfig.json per service</td></tr>
+        <tr><td>Start / Stop Scripts</td><td>start-all.sh / stop-all.sh</td><td>Starts all 4 services (nohup) &middot; writes PIDs to <code>/tmp/merchant-pids.txt</code> &middot; stop-all reads PIDs + lsof fallback</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     09: ENV CONFIG
+═══════════════════════════════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--muted)">09 &nbsp; Environment Configuration</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+    <div class="card-sm">
+      <div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:10px">&#128230; backend/.env</div>
+      <div style="font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:var(--muted);line-height:2">
+        <span style="color:var(--amber)">RABBITMQ_URL</span>=amqp://admin:***@localhost:<span style="color:var(--amber)">5673</span><br>
+        <span style="color:var(--text)">MONGODB_URI</span>=mongodb://localhost:27017/merchant-onboarding<br>
+        <span style="color:var(--text)">PORT</span>=3001<br>
+        <span style="color:var(--text)">AWS_REGION</span>=eu-west-1<br>
+        <span style="color:var(--text)">USE_AWS_TEXTRACT</span>=true<br>
+        <span style="color:var(--text)">DIAL_API_URL</span>=https://ai-proxy.lab.epam.com<br>
+        <span style="color:var(--text)">DIAL_API_KEY</span>=dial-***<br>
+        <span style="color:var(--text)">DIAL_MODEL</span>=gpt-4o<br>
+        <span style="color:var(--text)">JWT_SECRET</span>=bfsi-hackathon-***<br>
+        <span style="color:var(--text)">CORS_ORIGINS</span>=http://localhost:3000
+      </div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:12px;font-weight:800;color:var(--purple);margin-bottom:10px">&#127991; mcc-analyser env</div>
+      <div style="font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:var(--muted);line-height:2">
+        <span style="color:var(--text)">API_KEY</span>=dial-***<br>
+        <br>
+        <span style="color:var(--muted);font-size:10px">// application.properties</span><br>
+        <span style="color:var(--text)">openai.api.url</span>=https://ai-proxy.lab.epam.com<br>
+        <span style="color:var(--text)">openai.model</span>=<span style="color:var(--green)">gpt-4o-mini</span><br>
+        <span style="color:var(--text)">openai.embed</span>=text-embedding-3-small-1<br>
+        <span style="color:var(--text)">server.port</span>=8091
+      </div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:10px">&#9878; smart-risk-scoring</div>
+      <div style="font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:var(--muted);line-height:2">
+        <span style="color:var(--text)">--openai.api.key</span>=dial-***<br>
+        <br>
+        <span style="color:var(--muted);font-size:10px">// startup command</span><br>
+        java -jar target/smart-risk-scoring-1.0.0.jar<br>
+        &nbsp;&nbsp;--openai.api.key=dial-***<br>
+        <br>
+        <span style="color:var(--text)">server.port</span>=8080
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:14px;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 24px">
+    <div style="font-size:12px;font-weight:800;color:var(--teal);margin-bottom:10px">&#128640; NPM Scripts (backend/package.json) &amp; Start/Stop</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="font-family:'JetBrains Mono','Fira Code',monospace;font-size:11.5px;color:var(--muted);line-height:2">
+        <span style="color:var(--amber)">"dev:all"</span>: concurrently backend + mcc-analyser + smart-risk-scoring<br>
+        <span style="color:var(--amber)">"dev"</span>: nodemon ts-node src/server.ts<br>
+        <span style="color:var(--amber)">"mcc-analyser"</span>: cd ../mcc-analyser &amp;&amp; API_KEY=*** java -jar ...<br>
+        <span style="color:var(--amber)">"smart-risk-scoring"</span>: java -jar ../smart-risk-scoring/target/... --openai.api.key=***
+      </div>
+      <div style="padding:12px 16px;background:var(--s2);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Start / Stop all services:</div>
+        <div style="font-family:'JetBrains Mono','Fira Code',monospace;font-size:13px;color:var(--green)">zsh start-all.sh</div>
+        <div style="font-family:'JetBrains Mono','Fira Code',monospace;font-size:13px;color:var(--red);margin-top:4px">zsh stop-all.sh</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">Starts all 4 services &middot; writes PIDs to /tmp/merchant-pids.txt<br>stop-all.sh reads PIDs + fallback lsof port kill</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     10: STATE MACHINE
+═══════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">&#128260; &nbsp; Application Status State Machine</div>
+  <div class="section-body">
+    <div class="sm-wrap">
+      <span class="sm-node sm-blocked">&#9940; BLOCKED (dup)</span>
+      <span class="sm-arrow">&nbsp;|&nbsp;</span>
+      <span class="sm-node sm-draft">DRAFT</span>
+      <span class="sm-arrow">&rarr;</span>
+      <span class="sm-node sm-sub">SUBMITTED</span>
+      <span class="sm-arrow">&rarr;</span>
+      <span class="sm-node sm-proc">PROCESSING</span>
+      <span class="sm-arrow">&rarr;</span>
+      <div class="sm-branch">
+        <span class="sm-node sm-approve">&#10003; APPROVED</span>
+        <span class="sm-node sm-manual">&#9888; MANUAL_REVIEW &nbsp;&rarr;&nbsp; APPROVED / REJECTED</span>
+        <span class="sm-node sm-reject">&#10007; REJECTED</span>
+      </div>
+    </div>
+    <div class="sm-rule">
+      <strong>Duplicate guard:</strong> Fires at Step 1&rarr;2, Step 2 submit, DRAFT creation, doc-upload load, and pre-Textract submit. Checks APPROVED collection only. &nbsp;|&nbsp;
+      <strong>EventBus:</strong> If RabbitMQ :5673 unavailable &rarr; direct in-process agent execution via <code>registerDirectAgents()</code> &mdash; system remains fully functional. &nbsp;|&nbsp;
+      <strong>Decision rules:</strong>&nbsp;
+      All scores &ge; 85 &amp; no reviewRequired &rarr; <strong>AUTO APPROVED</strong> (MID + password generated immediately) &nbsp;|&nbsp;
+      Any score 50&ndash;84 or reviewRequired=true &rarr; <strong>MANUAL_REVIEW</strong> &nbsp;|&nbsp;
+      Any agent FAILED or score &lt; 50 &rarr; <strong>REJECTED</strong> (no credentials ever generated)
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">Architecture v10 &middot; Performance Optimised &middot; All 4 AI Cost Optimisations Implemented &#10003; &middot; RabbitMQ on Homebrew :5673 &middot; Direct Agent Fallback Active &middot; DLQ Enabled &middot; BFSI Hackathon 2026 &middot; Merchant Onboarding System &middot; 30 April 2026</div>
+</body>
+</html>

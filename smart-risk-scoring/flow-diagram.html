@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Risk Scoring — Flow Diagram</title>
+<style>
+  body { margin: 0; padding: 40px; background: #0d1117; font-family: 'Segoe UI', Arial, sans-serif; color: #e6edf3; }
+  .diagram { max-width: 1100px; margin: 0 auto; }
+  h1 { text-align: center; color: #58a6ff; font-size: 28px; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #8b949e; font-size: 14px; margin-bottom: 40px; }
+
+  /* Nodes */
+  .row { display: flex; justify-content: center; gap: 24px; margin-bottom: 0; position: relative; }
+  .box { border-radius: 12px; padding: 16px 20px; text-align: center; min-width: 200px; position: relative; }
+  .box h3 { margin: 0 0 6px 0; font-size: 15px; }
+  .box p { margin: 0; font-size: 12px; color: #8b949e; line-height: 1.4; }
+  .box .badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 6px; font-weight: 600; }
+
+  .client { background: #1c2333; border: 2px solid #388bfd; }
+  .controller { background: #1c2333; border: 2px solid #58a6ff; }
+  .rabbit { background: #1c2333; border: 2px solid #f0883e; }
+  .pipeline { background: #161b22; border: 2px solid #30363d; border-radius: 16px; padding: 24px; margin: 0 auto; max-width: 900px; }
+  .step { background: #21262d; border: 1px solid #30363d; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 14px; }
+  .step:last-child { margin-bottom: 0; }
+  .step-num { background: #388bfd; color: #fff; font-weight: 700; font-size: 13px; min-width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-num.async { background: #f0883e; }
+  .step-content h4 { margin: 0 0 4px 0; font-size: 14px; color: #e6edf3; }
+  .step-content p { margin: 0; font-size: 12px; color: #8b949e; line-height: 1.5; }
+  .step-content .tech { color: #7ee787; font-weight: 600; }
+  .step-content .time { color: #f0883e; font-weight: 600; }
+  .step-content .new-tag { background: #238636; color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 700; vertical-align: middle; }
+  .step-content .fallback-tag { background: #f0883e; color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 700; vertical-align: middle; }
+
+  .output { background: #1c2333; border: 2px solid #7ee787; }
+  .output-rabbit { background: #1c2333; border: 2px solid #f0883e; }
+
+  /* Arrows */
+  .arrow { text-align: center; padding: 8px 0; color: #30363d; font-size: 24px; line-height: 1; }
+  .arrow-split { display: flex; justify-content: center; gap: 280px; }
+
+  /* Feature table */
+  .feature-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+  .feature-table th { background: #161b22; color: #58a6ff; padding: 4px 8px; text-align: left; border: 1px solid #30363d; }
+  .feature-table td { padding: 3px 8px; border: 1px solid #30363d; }
+  .feature-table tr.new-row td { background: #0d2818; }
+
+  /* LLM sections */
+  .llm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .llm-item { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 5px 8px; font-size: 11px; }
+  .llm-item .label { color: #58a6ff; font-weight: 600; }
+  .llm-item .limit { color: #f0883e; }
+
+  /* Async box */
+  .async-box { background: #1c1d2e; border: 2px dashed #f0883e; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; }
+  .async-box h4 { margin: 0 0 4px 0; font-size: 14px; color: #f0883e; }
+  .async-box p { margin: 0; font-size: 12px; color: #8b949e; line-height: 1.5; }
+
+  /* Timeline */
+  .timeline { max-width: 900px; margin: 24px auto 0; }
+  .timeline h3 { color: #58a6ff; font-size: 16px; text-align: center; margin-bottom: 12px; }
+  .tl-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-left: 3px solid #388bfd; margin-left: 60px; padding-left: 16px; }
+  .tl-row.async-row { border-left-color: #f0883e; }
+  .tl-time { font-size: 12px; color: #f0883e; font-weight: 600; min-width: 70px; }
+  .tl-desc { font-size: 12px; color: #8b949e; }
+  .tl-desc .tech { color: #7ee787; font-weight: 600; }
+
+  /* Response */
+  .response-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; max-width: 900px; margin-left: auto; margin-right: auto; }
+  .resp-item { background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; }
+  .resp-item .key { font-size: 11px; color: #58a6ff; font-weight: 600; }
+  .resp-item .val { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .resp-item.new-item { border-color: #238636; }
+
+  /* Tech stack */
+  .tech-row { display: flex; justify-content: center; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+  .tech-pill { background: #21262d; border: 1px solid #30363d; border-radius: 20px; padding: 6px 16px; font-size: 12px; }
+  .tech-pill .t { color: #7ee787; font-weight: 600; }
+
+  /* Endpoints */
+  .endpoints { max-width: 900px; margin: 24px auto 0; }
+  .ep { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid #21262d; }
+  .ep .method { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 4px; min-width: 50px; text-align: center; }
+  .ep .get { background: #238636; color: #fff; }
+  .ep .post { background: #1f6feb; color: #fff; }
+  .ep .path { font-size: 13px; color: #e6edf3; font-family: monospace; }
+  .ep .desc { font-size: 12px; color: #8b949e; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="diagram">
+
+<h1>🛡️ Smart Risk Scoring</h1>
+<p class="subtitle">Payment Merchant Onboarding — AI-Powered Risk Assessment · Async Hybrid Architecture</p>
+
+<!-- Client -->
+<div class="row">
+  <div class="box client" style="min-width:440px">
+    <h3>📱 Client / API Consumer</h3>
+    <p>Sends merchant data (7 fields) for risk assessment</p>
+  </div>
+</div>
+
+<div class="arrow-split"><div class="arrow">▼</div><div class="arrow">▼</div></div>
+
+<!-- Controllers -->
+<div class="row">
+  <div class="box controller">
+    <h3>⚡ Sync</h3>
+    <p>POST /api/risk/score</p>
+    <p>Full sync pipeline: LLM → ML → LIME → Reports</p>
+    <div class="badge" style="background:#238636;color:#fff">~10-60s (with LLM)</div>
+  </div>
+  <div class="box rabbit">
+    <h3>🐰 Async</h3>
+    <p>POST /api/risk/queue</p>
+    <p>Returns immediately</p>
+    <div class="badge" style="background:#f0883e;color:#fff">&lt;100ms</div>
+  </div>
+</div>
+
+<div class="arrow"><span>▼</span></div>
+
+<!-- Pipeline -->
+<div class="pipeline">
+  <div style="text-align:center;margin-bottom:16px">
+    <span style="font-size:16px;font-weight:700;color:#58a6ff">═══ RISK SCORING PIPELINE ═══</span>
+    <br><span style="font-size:11px;color:#8b949e">Sync sequential · LLM fraud detection → ML → LIME → LLM reports · Rule-based fallback if LLM down</span>
+  </div>
+
+  <div class="step">
+    <div class="step-num">0</div>
+    <div class="step-content">
+      <h4>🔍 LLM Fraud Detection + Country Risk — <span class="tech">GPT-4o</span> <span class="time">~3-10s (sync)</span></h4>
+      <p><b>LLM analyzes:</b> <span class="tech">Chargeback</span> · <span class="tech">Bust-Out</span> · <span class="tech">CNP</span> · <span class="tech">AML</span> · <span class="tech">Shell Co</span> · <span class="tech">Industry</span> · <span class="tech">Structuring</span> · <span class="tech">Velocity</span><br>
+      <b>Country risk:</b> FinCEN orders · Regulatory environment · Cross-border exposure · Data privacy laws<br>
+      <b>Fallback:</b> If LLM fails → rule-based fraud checks + location risk lookup (instant)<br>
+      Output: fraudFlag (0/1) + fraudSeverity (0-4) + countryRiskScore (0-100) + indicators[] + checks[]</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h4>🤖 ML Prediction — <span class="tech">Weka RandomForest</span> <span class="time">~50ms</span> <span class="new-tag">10 FEATURES</span></h4>
+      <p>Trained on <b>1000 realistic synthetic merchants</b> · Industry-specific distributions · Edge cases injected<br>Classifies as Low / Medium / High risk</p>
+      <table class="feature-table">
+        <tr><th>#</th><th>Feature</th><th>Encoding</th><th>Source</th></tr>
+        <tr><td>1</td><td>business_type</td><td>0-4 map</td><td>User input</td></tr>
+        <tr><td>2</td><td>transaction_volume</td><td>as-is</td><td>User input</td></tr>
+        <tr><td>3</td><td>location</td><td>0-4 map</td><td>User input</td></tr>
+        <tr><td>4</td><td>chargeback_rate</td><td>as-is</td><td>User input</td></tr>
+        <tr><td>5</td><td>years_in_business</td><td>as-is</td><td>User input</td></tr>
+        <tr><td>6</td><td>average_txn_size</td><td>as-is</td><td>User input</td></tr>
+        <tr><td>7</td><td>fraud_flag</td><td>0/1</td><td>LLM or Rules</td></tr>
+        <tr><td>8</td><td>compliance_score</td><td>as-is</td><td>User input</td></tr>
+        <tr class="new-row"><td>9</td><td>fraud_severity</td><td>0-4 (NONE→CRITICAL)</td><td>LLM or Rules 🆕</td></tr>
+        <tr class="new-row"><td>10</td><td>country_risk_score</td><td>0-100</td><td>LLM or Rules 🆕</td></tr>
+      </table>
+      <p style="margin-top:6px">Output: riskLabel + probabilities [Low, Medium, High]</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h4>📊 Risk Score (0-100) <span class="time">&lt;1ms</span></h4>
+      <p>Weighted composite: ML prob (50) + chargeback (15) + compliance (15) + fraud signals (10) + volume (5) + age (5)</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h4>✅ Decision <span class="time">&lt;1ms</span></h4>
+      <p>High → <span style="color:#f85149;font-weight:700">DECLINED</span> · Medium → <span style="color:#f0883e;font-weight:700">CONDITIONAL</span> · Low → <span style="color:#7ee787;font-weight:700">APPROVED</span></p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <h4>🔬 LIME Explainability <span class="time">~500ms</span> <span class="new-tag">10 FEATURES</span></h4>
+      <p><span class="tech">Custom LIME</span> — perturb 500 samples → weighted linear regression → feature importance for all 10 features<br>
+      Includes: fraud_severity (ordinal 0-4 perturbation) + country_risk_score (clamped 0-100)<br>
+      Output: feature, weight, displayValue, impact (CRITICAL/HIGH/MODERATE/LOW), reason (human-readable)</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <h4>📝 Template Summary <span class="time">&lt;1ms</span></h4>
+      <p>Pre-built text: decision + risk + exposure + merchant profile + fraud severity + country risk + top 5 factors. <span class="tech">Always free, no LLM</span></p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <h4>🧠 LLM Reports — <span class="tech">GPT-4o</span> <span class="time">~10-30s (sync)</span></h4>
+      <p>Single sync API call generates 8 reports parsed by delimiters<br>
+      <b>If LLM unavailable →</b> clean "[LLM unavailable]" placeholders with pointers to rule-based fields</p>
+      <div class="llm-grid">
+      <div class="llm-item"><span class="label">Analyst Report</span> <span class="limit">200-300w</span></div>
+      <div class="llm-item"><span class="label">Compliance Report</span> <span class="limit">no limit</span></div>
+      <div class="llm-item"><span class="label">Sales Report</span> <span class="limit">≤150w</span></div>
+      <div class="llm-item"><span class="label">Merchant Notice</span> <span class="limit">≤100w</span></div>
+      <div class="llm-item"><span class="label">Executive Brief</span> <span class="limit">≤50w</span></div>
+      <div class="llm-item"><span class="label">Anomaly Desc</span> <span class="limit">100-150w</span></div>
+      <div class="llm-item"><span class="label">Override Suggestion</span> <span class="limit">≤80w</span></div>
+      <div class="llm-item"><span class="label">Consistency Score</span> <span class="limit">JSON 1-10</span></div>
+    </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Timeline -->
+<div class="timeline">
+  <h3>⏱️ Execution Timeline (Sync Pipeline)</h3>
+  <div class="tl-row"><div class="tl-time">0s</div><div class="tl-desc"><span class="tech">GPT-4o</span> fraud detection + country risk (sync call)</div></div>
+  <div class="tl-row"><div class="tl-time">~3-10s</div><div class="tl-desc">Fraud result received → fraudFlag, severity, countryRisk set</div></div>
+  <div class="tl-row"><div class="tl-time">~10s</div><div class="tl-desc"><span class="tech">Weka RandomForest</span> prediction (10 features incl. LLM-derived)</div></div>
+  <div class="tl-row"><div class="tl-time">~10.05s</div><div class="tl-desc">Risk score (0-100) + decision (APPROVED/CONDITIONAL/DECLINED)</div></div>
+  <div class="tl-row"><div class="tl-time">~10.5s</div><div class="tl-desc"><span class="tech">LIME</span> explanation (500 perturbations × 10 features)</div></div>
+  <div class="tl-row"><div class="tl-time">~11s</div><div class="tl-desc">Template summary built (free, no LLM)</div></div>
+  <div class="tl-row"><div class="tl-time">~11s</div><div class="tl-desc"><span class="tech">GPT-4o</span> reports generation (sync — 8 reports in 1 call)</div></div>
+  <div class="tl-row"><div class="tl-time">~20-40s</div><div class="tl-desc">Reports received → response assembled</div></div>
+  <div class="tl-row"><div class="tl-time">✅ Done</div><div class="tl-desc">Full response sent to client (2 LLM calls total)</div></div>
+  <div class="tl-row" style="border-left-color:#f85149"><div class="tl-time">⚡ LLM down</div><div class="tl-desc">Rule-based fallback → response at ~1s with clean placeholders</div></div>
+</div>
+
+<div class="arrow-split"><div class="arrow">▼</div><div class="arrow">▼</div></div>
+
+<!-- Output -->
+<div class="row">
+  <div class="box output">
+    <h3>📤 Sync Response</h3>
+    <p>Full JSON to client</p>
+  </div>
+  <div class="box output-rabbit">
+    <h3>🐰 Response Queue</h3>
+    <p>merchant.risk.response</p>
+  </div>
+</div>
+
+<!-- Response fields -->
+<div class="response-grid">
+  <div class="resp-item"><div class="key">decision</div><div class="val">APPROVED / CONDITIONAL / DECLINED</div></div>
+  <div class="resp-item"><div class="key">riskScore</div><div class="val">0-100 composite</div></div>
+  <div class="resp-item"><div class="key">riskLabel</div><div class="val">Low / Medium / High</div></div>
+  <div class="resp-item"><div class="key">probabilities</div><div class="val">[L, M, H] confidence</div></div>
+  <div class="resp-item"><div class="key">fraudFlag</div><div class="val">LLM or rule-based 0/1</div></div>
+  <div class="resp-item"><div class="key">fraudSignals</div><div class="val">6+ checks · source tag</div></div>
+  <div class="resp-item"><div class="key">countryRisk</div><div class="val">LLM or rule-based · source tag</div></div>
+  <div class="resp-item"><div class="key">financialExposure</div><div class="val">vol × chargeback $</div></div>
+  <div class="resp-item"><div class="key">explanation</div><div class="val">LIME top 5 (10 features)</div></div>
+  <div class="resp-item"><div class="key">summary</div><div class="val">Template (always free)</div></div>
+  <div class="resp-item"><div class="key">llmReport</div><div class="val">Analyst or placeholder</div></div>
+  <div class="resp-item"><div class="key">complianceReport</div><div class="val">BSA/AML or placeholder</div></div>
+  <div class="resp-item"><div class="key">salesReport</div><div class="val">Sales or placeholder</div></div>
+  <div class="resp-item"><div class="key">executiveBrief</div><div class="val">C-suite or placeholder</div></div>
+  <div class="resp-item"><div class="key">overrideSuggestion</div><div class="val">Human review or ""</div></div>
+  <div class="resp-item"><div class="key">consistencyScore</div><div class="val">LLM vs ML or ""</div></div>
+</div>
+
+<!-- Tech stack -->
+<div class="tech-row">
+  <div class="tech-pill"><span class="t">Spring Boot</span> 3.2.5</div>
+  <div class="tech-pill"><span class="t">Weka</span> RandomForest (10 feat)</div>
+  <div class="tech-pill"><span class="t">LIME</span> Custom (10 feat)</div>
+  <div class="tech-pill"><span class="t">GPT-4o</span> Sync (2 calls)</div>
+  <div class="tech-pill"><span class="t">1000</span> Training Merchants</div>
+  <div class="tech-pill"><span class="t">RabbitMQ</span> Docker</div>
+  <div class="tech-pill"><span class="t">Java</span> 17</div>
+</div>
+
+<!-- Endpoints -->
+<div class="endpoints">
+  <div class="ep"><span class="method post">POST</span><span class="path">/api/risk/score</span><span class="desc">Sync — full pipeline (LLM + ML + LIME)</span></div>
+  <div class="ep"><span class="method post">POST</span><span class="path">/api/risk/queue</span><span class="desc">Async — RabbitMQ</span></div>
+  <div class="ep"><span class="method get">GET</span><span class="path">/api/risk/queue/status</span><span class="desc">RabbitMQ health</span></div>
+  <div class="ep"><span class="method get">GET</span><span class="path">/api/risk/health</span><span class="desc">App health</span></div>
+  <div class="ep"><span class="method get">GET</span><span class="path">/api/risk/rules</span><span class="desc">Fraud detection thresholds</span></div>
+</div>
+
+</div>
+</body>
+</html>
+

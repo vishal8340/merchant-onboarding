@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merchant Onboarding — Production Architecture Diagram</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4f8;--s1:#ffffff;--s2:#f1f5f9;--s3:#e8eef6;
+  --border:#d1dbe8;--text:#1e293b;--muted:#64748b;
+  --blue:#1d4ed8;--blue-dim:#dbeafe;
+  --purple:#6d28d9;--purple-dim:#ede9fe;
+  --green:#047857;--green-dim:#d1fae5;
+  --teal:#0f766e;--teal-dim:#ccfbf1;
+  --amber:#92400e;--amber-dim:#fef3c7;
+  --red:#b91c1c;--red-dim:#fee2e2;
+  --cyan:#0369a1;--cyan-dim:#e0f2fe;
+  --orange:#c2410c;--orange-dim:#ffedd5;
+  --indigo:#4338ca;--indigo-dim:#e0e7ff;
+  --pink:#be185d;--pink-dim:#fce7f3;
+  --slate:#334155;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:40px 36px 80px;line-height:1.5;min-width:1100px}
+mono,code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);background:var(--s2);padding:1px 5px;border-radius:4px}
+
+/* ── HEADER ── */
+.page-header{text-align:center;margin-bottom:52px;background:linear-gradient(135deg,#f0f6ff 0%,#f5f0ff 45%,#f0fdfc 100%);border:1px solid var(--border);border-radius:20px;padding:44px 48px 36px}
+.page-badge{display:inline-flex;align-items:center;gap:8px;background:var(--blue-dim);border:1px solid #93c5fd;border-radius:999px;padding:5px 18px;font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.1em;text-transform:uppercase;margin-bottom:18px}
+.page-header h1{font-size:36px;font-weight:900;letter-spacing:-.03em;line-height:1.15;background:linear-gradient(135deg,var(--blue) 0%,var(--purple) 45%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.page-header p{font-size:14px;color:var(--muted);max-width:700px;margin:0 auto 20px}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
+.badge-blue{background:var(--blue-dim);color:var(--blue);border-color:#93c5fd}
+.badge-green{background:var(--green-dim);color:var(--green);border-color:#6ee7b7}
+.badge-purple{background:var(--purple-dim);color:var(--purple);border-color:#c4b5fd}
+.badge-amber{background:var(--amber-dim);color:var(--amber);border-color:#fcd34d}
+.badge-red{background:var(--red-dim);color:var(--red);border-color:#fca5a5}
+.badge-teal{background:var(--teal-dim);color:var(--teal);border-color:#5eead4}
+.badge-indigo{background:var(--indigo-dim);color:var(--indigo);border-color:#a5b4fc}
+
+/* ── SECTION LABEL ── */
+.sec-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:10px;color:var(--muted)}
+.sec-label::before,.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.gap-section{margin-bottom:48px}
+
+/* ── CHIPS ── */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700}
+.chip-blue{background:var(--blue-dim);color:var(--blue);border:1px solid #93c5fd}
+.chip-purple{background:var(--purple-dim);color:var(--purple);border:1px solid #c4b5fd}
+.chip-green{background:var(--green-dim);color:var(--green);border:1px solid #6ee7b7}
+.chip-teal{background:var(--teal-dim);color:var(--teal);border:1px solid #5eead4}
+.chip-amber{background:var(--amber-dim);color:var(--amber);border:1px solid #fcd34d}
+.chip-red{background:var(--red-dim);color:var(--red);border:1px solid #fca5a5}
+.chip-cyan{background:var(--cyan-dim);color:var(--cyan);border:1px solid #7dd3fc}
+.chip-orange{background:var(--orange-dim);color:var(--orange);border:1px solid #fdba74}
+.chip-indigo{background:var(--indigo-dim);color:var(--indigo);border:1px solid #a5b4fc}
+.chip-pink{background:var(--pink-dim);color:var(--pink);border:1px solid #f9a8d4}
+.chip-gray{background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+.vs-badge{background:linear-gradient(90deg,#fee2e2,#fef3c7);color:var(--orange);border:1px solid #fca5a5;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700}
+.prod-badge{background:linear-gradient(90deg,var(--green-dim),var(--teal-dim));color:var(--green);border:1px solid #6ee7b7;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:700}
+
+/* ── GRIDS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ── LAYER ZONE ── */
+.zone{border-radius:16px;overflow:hidden;border:1.5px solid}
+.zone-head{padding:12px 20px;display:flex;align-items:center;gap:12px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-bottom:1.5px solid}
+.zone-body{padding:20px}
+.zone-blue{border-color:#93c5fd}.zone-blue .zone-head{background:var(--blue-dim);color:var(--blue);border-bottom-color:#93c5fd}
+.zone-green{border-color:#6ee7b7}.zone-green .zone-head{background:var(--green-dim);color:var(--green);border-bottom-color:#6ee7b7}
+.zone-purple{border-color:#c4b5fd}.zone-purple .zone-head{background:var(--purple-dim);color:var(--purple);border-bottom-color:#c4b5fd}
+.zone-amber{border-color:#fcd34d}.zone-amber .zone-head{background:var(--amber-dim);color:var(--amber);border-bottom-color:#fcd34d}
+.zone-red{border-color:#fca5a5}.zone-red .zone-head{background:var(--red-dim);color:var(--red);border-bottom-color:#fca5a5}
+.zone-teal{border-color:#5eead4}.zone-teal .zone-head{background:var(--teal-dim);color:var(--teal);border-bottom-color:#5eead4}
+.zone-indigo{border-color:#a5b4fc}.zone-indigo .zone-head{background:var(--indigo-dim);color:var(--indigo);border-bottom-color:#a5b4fc}
+.zone-cyan{border-color:#7dd3fc}.zone-cyan .zone-head{background:var(--cyan-dim);color:var(--cyan);border-bottom-color:#7dd3fc}
+.zone-slate{border-color:#cbd5e1}.zone-slate .zone-head{background:var(--s2);color:var(--slate);border-bottom-color:#cbd5e1}
+
+/* ── SERVICE CARD ── */
+.svc{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.svc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.svc-icon{font-size:20px;flex-shrink:0}
+.svc-name{font-size:12px;font-weight:800;color:var(--text);line-height:1.3}
+.svc-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.svc-body{font-size:11px;color:var(--muted);line-height:1.7}
+.svc-body ul{list-style:none;padding:0}
+.svc-body ul li::before{content:"›";margin-right:5px;color:var(--blue);font-weight:700}
+.svc-port{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:6px}
+
+/* ── ARROW CONNECTOR ── */
+.conn-v{display:flex;justify-content:center;align-items:center;padding:6px 0;color:var(--muted);font-size:18px}
+.conn-h{display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);padding:0 8px;flex-shrink:0}
+
+/* ── COMPARE ROW ── */
+.compare-row{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.compare-hack{flex:1;padding:12px 14px;background:linear-gradient(135deg,var(--red-dim),#fff1f2);border-right:1px solid var(--border)}
+.compare-prod{flex:2;padding:12px 14px;background:linear-gradient(135deg,var(--green-dim),#f0fdf4)}
+.compare-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+.compare-lbl.h{color:var(--red)}.compare-lbl.p{color:var(--green)}
+.compare-text{font-size:11px;color:var(--text);line-height:1.6}
+
+/* ── STAT BOX ── */
+.stat-box{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center}
+.stat-num{font-size:28px;font-weight:900;line-height:1;margin-bottom:4px}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* ── FLOW STEP ── */
+.flow-step{background:var(--s1);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;flex:1;min-width:0}
+.flow-step-num{font-size:9px;font-weight:800;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.flow-step-icon{font-size:22px;margin-bottom:6px}
+.flow-step-title{font-size:12px;font-weight:800;color:var(--text);margin-bottom:5px}
+.flow-step-body{font-size:10px;color:var(--muted);line-height:1.6}
+
+/* ── GLOW ── */
+.glow-blue{box-shadow:0 0 0 1px rgba(29,78,216,.15),0 4px 20px rgba(29,78,216,.07)}
+.glow-green{box-shadow:0 0 0 1px rgba(4,120,87,.15),0 4px 20px rgba(4,120,87,.07)}
+.glow-purple{box-shadow:0 0 0 1px rgba(109,40,217,.15),0 4px 20px rgba(109,40,217,.07)}
+.glow-amber{box-shadow:0 0 0 1px rgba(146,64,14,.2),0 4px 20px rgba(146,64,14,.07)}
+.glow-teal{box-shadow:0 0 0 1px rgba(15,118,110,.15),0 4px 20px rgba(15,118,110,.07)}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--border);margin:32px 0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:10px 14px;background:var(--s2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,0,0,.015)}
+.note-banner{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;background:var(--blue-dim);border:1px solid #93c5fd;border-radius:12px;margin-bottom:24px}
+.note-banner-text{font-size:12px;color:var(--blue);line-height:1.7;font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- ════════════ HEADER ════════════ -->
+<div class="page-header">
+  <div class="page-badge">☁️ &nbsp; Production Deployment</div>
+  <h1>Production Architecture Diagram</h1>
+  <p>Cloud-native deployment of the Merchant Onboarding Platform — AWS infrastructure, Kubernetes orchestration, managed data services, mTLS, compliance integrations and full observability.</p>
+  <div class="badge-row">
+    <span class="badge badge-blue">☁️ AWS / EKS</span>
+    <span class="badge badge-green">🍃 MongoDB Atlas</span>
+    <span class="badge badge-purple">🤖 EPAM DIAL · GPT-4o</span>
+    <span class="badge badge-teal">📡 OpenTelemetry + Grafana</span>
+    <span class="badge badge-amber">🔐 mTLS · Vault · SSE-KMS</span>
+    <span class="badge badge-red">🛡️ WAF · ComplyAdvantage · MATCH</span>
+    <span class="badge badge-indigo">🔄 GitHub Actions CI/CD</span>
+  </div>
+</div>
+
+
+<!-- ════════════ SUMMARY STATS ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--blue)">At a Glance — Production vs Hackathon</div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-box">
+      <div class="stat-num" style="color:var(--blue)">7</div>
+      <div class="stat-lbl">Architecture Layers</div>
+      <div class="stat-sub">Edge → UI → Gateway → App → AI → Data → Observability</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" style="color:var(--green)">18+</div>
+      <div class="stat-lbl">Managed Services</div>
+      <div class="stat-sub">vs 4 local processes in hackathon</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" style="color:var(--purple)">3</div>
+      <div class="stat-lbl">Availability Zones</div>
+      <div class="stat-sub">Multi-AZ for every stateful component</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" style="color:var(--teal)">99.9%</div>
+      <div class="stat-lbl">Target Uptime SLA</div>
+      <div class="stat-sub">&lt;8.7 h downtime / year</div>
+    </div>
+  </div>
+
+  <div class="note-banner">
+    <span style="font-size:20px;flex-shrink:0">ℹ️</span>
+    <div class="note-banner-text">
+      <strong>Reading this diagram:</strong> Each section below represents one horizontal layer of the production stack, from the public internet edge (CDN / WAF) down through the application tier, AI agent cluster, compliance integrations, and into the data and observability planes. Arrows indicate primary data-flow direction. All internal service-to-service communication uses <strong>mTLS with mutual certificate authentication</strong>.
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 1: EDGE & CDN ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--blue)">Layer 1 — Public Edge &amp; CDN</div>
+  <div class="zone zone-blue glow-blue">
+    <div class="zone-head">
+      <span style="font-size:18px">🌐</span>
+      <span>Public Edge — CloudFront CDN + WAF + DDoS Shield</span>
+      <span class="chip chip-blue" style="margin-left:auto;font-size:9px">AWS us-east-1 PoPs</span>
+    </div>
+    <div class="zone-body">
+      <div class="grid-3">
+        <div class="svc glow-blue">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">☁️ AWS CloudFront</div>
+              <div class="svc-sub">CDN + TLS Termination</div>
+            </div>
+            <span class="chip chip-blue" style="font-size:9px">Edge</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>TLS 1.3 termination at 400+ PoPs globally</li>
+              <li>HTTPS-only enforced — HTTP → 301 redirect</li>
+              <li>React SPA served from S3 origin (static assets)</li>
+              <li>Cache-Control headers per route (1y for hashed assets)</li>
+              <li>Geo-blocking for FATF high-risk jurisdictions</li>
+              <li>Custom domain via Route 53 with DNSSEC</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc glow-blue">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">🛡️ AWS WAF v2</div>
+              <div class="svc-sub">Web Application Firewall</div>
+            </div>
+            <span class="chip chip-red" style="font-size:9px">Security</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>OWASP Core Rule Set (SQL injection, XSS, LFI, RFI)</li>
+              <li>Rate-based rules: 2 000 req/5 min per IP</li>
+              <li>Bot control managed rule group</li>
+              <li>IP reputation list (Amazon Threat Intel feed)</li>
+              <li>Geo-match conditions on application submit endpoints</li>
+              <li>AWS Shield Advanced — L3/L4 DDoS protection</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc glow-blue">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">⚖️ AWS ALB</div>
+              <div class="svc-sub">Application Load Balancer</div>
+            </div>
+            <span class="chip chip-blue" style="font-size:9px">:443</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>Path-based routing: <code>/api/*</code> → API Gateway, <code>/*</code> → React SPA</li>
+              <li>Health checks on <code>/health</code> every 30 s</li>
+              <li>Sticky sessions disabled (stateless JWT)</li>
+              <li>Access logs to S3 + Athena for compliance queries</li>
+              <li>Idle timeout: 60 s; max connections: 5 000</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 2: API GATEWAY ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--indigo)">Layer 2 — API Gateway &amp; Auth</div>
+  <div class="zone zone-indigo glow-blue" style="margin-bottom:0">
+    <div class="zone-head">
+      <span style="font-size:18px">🚪</span>
+      <span>API Gateway — Kong / AWS API Gateway + Cognito IdP</span>
+      <span class="chip chip-indigo" style="margin-left:auto;font-size:9px">:443 → internal :8000</span>
+    </div>
+    <div class="zone-body">
+      <div class="grid-4" style="margin-bottom:16px">
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">🔑 JWT Auth</div><div class="svc-sub">AWS Cognito User Pools</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>OAuth 2.0 + OIDC (access + id + refresh tokens)</li>
+              <li>MFA enforced for ADMIN + COMPLIANCE roles</li>
+              <li>Token rotation: access 15 min, refresh 24 h</li>
+              <li>PKCE flow for React SPA (no client secret)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">⏱️ Rate Limiting</div><div class="svc-sub">Per-merchant + Per-IP</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>10 req / 15 min on <code>POST /api/applications</code></li>
+              <li>100 req / 60 s global per authenticated merchant</li>
+              <li>Burst allowance: 200 req/s global</li>
+              <li>429 response with <code>Retry-After</code> header</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">📋 Request Validation</div><div class="svc-sub">Schema + Sanitisation</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>OpenAPI 3.1 schema validation at gateway</li>
+              <li>Payload size limit: 10 MB (file uploads)</li>
+              <li>Content-Type enforcement</li>
+              <li>Input sanitisation: strip HTML/script tags</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">📡 API Versioning</div><div class="svc-sub">Path &amp; Header-based</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li><code>/api/v1/</code> routes — backwards-compatible</li>
+              <li><code>Deprecation</code> header on v0 endpoints (→ sunset date)</li>
+              <li>Canary routing: 5% to v2 during rollout</li>
+              <li>CORS policy: allowed origins from env config</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 3: APPLICATION TIER ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--purple)">Layer 3 — Application Tier (Kubernetes / EKS)</div>
+
+  <div style="background:linear-gradient(135deg,rgba(109,40,217,.04),rgba(15,118,110,.04));border:1.5px solid var(--purple-dim);border-radius:16px;padding:20px;margin-bottom:0">
+    <div style="font-size:11px;font-weight:800;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <span>⎈ EKS Cluster — 3 Availability Zones</span>
+      <span class="chip chip-purple" style="font-size:9px">HPA + PodDisruptionBudget</span>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:16px">
+      <!-- React SPA -->
+      <div class="zone zone-blue glow-blue">
+        <div class="zone-head" style="font-size:10px">
+          <span>⚛️</span><span>React Frontend</span>
+          <span class="chip chip-gray" style="margin-left:auto;font-size:9px">S3 + CloudFront</span>
+        </div>
+        <div class="zone-body">
+          <div class="svc-body">
+            <ul>
+              <li>TypeScript · React 18 · React Router v6</li>
+              <li>Static build → S3 → CloudFront (no pods needed)</li>
+              <li>Code-split bundles, lazy routes, <code>React.memo</code></li>
+              <li>JWT stored in <code>sessionStorage</code> (Cognito SDK)</li>
+              <li>Axios interceptor: Bearer on <code>/api/v1/*</code></li>
+              <li>CSP headers: <code>script-src 'self'</code> enforced</li>
+              <li>Environment vars injected at CI/CD build time</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node.js Backend -->
+      <div class="zone zone-green glow-green">
+        <div class="zone-head" style="font-size:10px">
+          <span>🟢</span><span>Node.js API Cluster</span>
+          <span class="chip chip-green" style="margin-left:auto;font-size:9px">3–10 replicas</span>
+        </div>
+        <div class="zone-body">
+          <div class="svc-body">
+            <ul>
+              <li>Express 4 · TypeScript · Helmet.js</li>
+              <li>Containerised: <code>node:20-alpine</code> non-root user</li>
+              <li>HPA: CPU 70% → scale out; min 3, max 10 pods</li>
+              <li>Secrets from AWS Secrets Manager (not <code>.env</code>)</li>
+              <li>Liveness: <code>GET /health</code> · Readiness: <code>GET /ready</code></li>
+              <li>bcryptjs rounds: 14 (production hardening)</li>
+              <li>multer: temp → S3 direct (no local disk writes)</li>
+            </ul>
+          </div>
+          <div class="svc-port">Port: 3001 (internal)</div>
+        </div>
+      </div>
+
+      <!-- Orchestrator -->
+      <div class="zone zone-amber glow-amber">
+        <div class="zone-head" style="font-size:10px">
+          <span>🎼</span><span>Orchestrator Service</span>
+          <span class="chip chip-amber" style="margin-left:auto;font-size:9px">Stateless</span>
+        </div>
+        <div class="zone-body">
+          <div class="svc-body">
+            <ul>
+              <li>Publishes 3 parallel events to RabbitMQ cluster</li>
+              <li><code>aggregateResults()</code> with timeout &amp; retry</li>
+              <li>Maker-checker: Reviewer → Senior Approver workflow</li>
+              <li>4-eyes enforcement at API level (segregation of duties)</li>
+              <li>Dead Letter Queue → ops alert channel</li>
+              <li>Circuit breaker: Resilience4j pattern (50% fail → open)</li>
+              <li>Outbox pattern for guaranteed event delivery</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Java Microservices -->
+    <div class="grid-2">
+      <!-- MCC Analyser -->
+      <div class="zone zone-purple glow-purple">
+        <div class="zone-head" style="font-size:10px">
+          <span>🏷️</span><span>MCC Analyser</span>
+          <span class="chip chip-purple" style="margin-left:auto;font-size:9px">Spring Boot 3.5 · Java 21 LTS</span>
+        </div>
+        <div class="zone-body">
+          <div class="svc-body">
+            <ul>
+              <li>LangChain4j RAG pipeline — MCC Handbook PDF → <code>text-embedding-3-small</code></li>
+              <li>ChromaDB vector store (in-cluster) → semantic similarity search</li>
+              <li>GPT-4o via EPAM AI Proxy (conditional — conf &lt; 0.6 only)</li>
+              <li>2–3 replicas; <code>@Lazy</code> beans — safe cold start</li>
+              <li>mTLS from Orchestrator (mutual cert auth)</li>
+              <li>Returns: <code>mccCode</code>, <code>confidence</code>, <code>reasoning</code>, <code>detectedRisks[]</code></li>
+            </ul>
+          </div>
+          <div class="svc-port">Port: 8091 (internal Kubernetes service)</div>
+        </div>
+      </div>
+
+      <!-- Smart Risk Scoring -->
+      <div class="zone zone-red">
+        <div class="zone-head" style="font-size:10px">
+          <span>⚖️</span><span>Smart Risk Scoring</span>
+          <span class="chip chip-red" style="margin-left:auto;font-size:9px">Spring Boot 3.5 · Weka ML + LIME</span>
+        </div>
+        <div class="zone-body">
+          <div class="svc-body">
+            <ul>
+              <li>Weka RandomForest model (<code>risk_model.ser</code>) — 10 features, always runs first</li>
+              <li>LIME Explainer — human-readable feature importance for regulatory rejection letters</li>
+              <li>GPT-4o LLM Risk Report only if riskLevel = HIGH or MANUAL_REVIEW (~30%)</li>
+              <li>Risk model versioned in S3; hot-reload without pod restart</li>
+              <li>Open Banking transaction history feed boosts model accuracy</li>
+              <li>Returns: <code>riskScore</code> 0–100, <code>riskLevel</code>, <code>riskFactors[]</code>, LIME explanation</li>
+            </ul>
+          </div>
+          <div class="svc-port">Port: 8080 (internal Kubernetes service)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 4: MESSAGE BROKER ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--amber)">Layer 4 — Message Broker Cluster</div>
+  <div class="zone zone-amber glow-amber">
+    <div class="zone-head">
+      <span style="font-size:18px">🐰</span>
+      <span>RabbitMQ Cluster — 3 Nodes, Multi-AZ · Mirrored Durable Queues</span>
+      <span class="chip chip-amber" style="margin-left:auto;font-size:9px">AMQP 0-9-1 · :5672</span>
+    </div>
+    <div class="zone-body">
+      <div class="grid-4" style="margin-bottom:0">
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">🔀 Exchange</div><div class="svc-sub">merchant.onboarding · topic · durable</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>Topic exchange — wildcard routing</li>
+              <li>Publisher confirms enabled</li>
+              <li>Mandatory flag — unroutable msgs fail fast</li>
+              <li>Exchange-to-exchange binding for audit copy</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">📬 Agent Queues</div><div class="svc-sub">Durable · HA-mirrored</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li><code>kyc.verification</code> → KYC Agent</li>
+              <li><code>mcc.categorization</code> → MCC Agent</li>
+              <li><code>risk.assessment</code> → Risk Agent</li>
+              <li><code>agent.results</code> → Orchestrator</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">☠️ Dead Letter Queue</div><div class="svc-sub">Ops alerting + replay</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>DLQ per agent queue — capture poison messages</li>
+              <li>TTL: 3 delivery attempts before DLQ routing</li>
+              <li>PagerDuty alert on DLQ depth &gt; 0</li>
+              <li>Replay tooling: admin-triggered requeue</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">🔒 Security &amp; HA</div><div class="svc-sub">mTLS + Quorum queues</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>TLS on AMQP port; mTLS between cluster nodes</li>
+              <li>Quorum queues (Raft consensus) — replace classic mirroring</li>
+              <li>3-node cluster across 3 AZs</li>
+              <li>Management UI behind VPN only (no public exposure)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 5: AI & COMPLIANCE INTEGRATIONS ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--red)">Layer 5 — AI Services &amp; Compliance Integrations</div>
+  <div class="grid-2" style="margin-bottom:16px">
+
+    <!-- AI Services -->
+    <div class="zone zone-purple glow-purple">
+      <div class="zone-head">
+        <span>🤖</span>
+        <span>AI / LLM Services</span>
+        <span class="chip chip-purple" style="margin-left:auto;font-size:9px">Conditional calls · ~68% cost saving</span>
+      </div>
+      <div class="zone-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🧠 EPAM DIAL · GPT-4o</div><div class="svc-sub">ai-proxy.lab.epam.com</div></div>
+            <span class="chip chip-purple" style="font-size:9px">Conditional</span>
+          </div>
+          <div class="svc-body">KYC Agent: called only when score &lt; 85 (~40% of apps). Risk Agent: only HIGH/MANUAL_REVIEW (~30%). Compressed prompts ≤ 800 chars. Token budget enforced at gateway. Fallback: structured rule result if DIAL times out (&gt;5 s).</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">☁️ AWS Textract</div><div class="svc-sub">eu-west-1 · Async API</div></div>
+            <span class="chip chip-amber" style="font-size:9px">Async</span>
+          </div>
+          <div class="svc-body"><code>StartDocumentAnalysis</code> + SNS callback (replaces blocking sync call). PDF → Ghostscript 200 DPI PNG per page. S3 pre-signed URL passed to Textract (no upload to Textract directly). Results stored encrypted in S3.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🗂️ ChromaDB Vector Store</div><div class="svc-sub">MCC Handbook embeddings</div></div>
+            <span class="chip chip-teal" style="font-size:9px">RAG</span>
+          </div>
+          <div class="svc-body">In-cluster ChromaDB pod with MCC Handbook PDF pre-embedded via <code>text-embedding-3-small</code>. Top-k=5 similarity retrieval. Embedding index versioned and refreshable without service restart.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compliance Integrations -->
+    <div class="zone zone-red">
+      <div class="zone-head">
+        <span>🛡️</span>
+        <span>KYC / AML / Compliance Integrations</span>
+        <span class="chip chip-red" style="margin-left:auto;font-size:9px">All calls server-side · keys in Vault</span>
+      </div>
+      <div class="zone-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">👁️ Onfido / Sumsub</div><div class="svc-sub">Biometric Identity Verification</div></div>
+            <span class="chip chip-red" style="font-size:9px">Critical</span>
+          </div>
+          <div class="svc-body">Government ID OCR + biometric liveness check. NFC chip read where available. eIDAS / RBI KYC / FinCEN compliant. Returns identity confidence score and fraud flags. Called during Step 1 of onboarding before any form data is accepted.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🔍 ComplyAdvantage</div><div class="svc-sub">AML · Sanctions · PEP Screening</div></div>
+            <span class="chip chip-red" style="font-size:9px">Critical</span>
+          </div>
+          <div class="svc-body">Real-time screening: OFAC SDN, UN, EU, HM Treasury. PEP database + adverse media. Webhook-based ongoing monitoring — re-screens existing merchants when new sanctions published. Auto-triggers SAR filing on match.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🃏 Mastercard MATCH List</div><div class="svc-sub">Terminated Merchant DB</div></div>
+            <span class="chip chip-red" style="font-size:9px">Critical</span>
+          </div>
+          <div class="svc-body">Checks if merchant or principals were previously terminated by any acquirer for fraud or excessive chargebacks. Mandatory before card scheme acceptance. Failure to check = acquiring bank liability.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🏛️ Bureau van Dijk Orbis</div><div class="svc-sub">Company Registry · UBO Lookup</div></div>
+            <span class="chip chip-amber" style="font-size:9px">High</span>
+          </div>
+          <div class="svc-body">Verify company exists, registered address, incorporation date, status. UBO (Ultimate Beneficial Owner) ownership chain. 400M+ company records. Alternatives: Companies House (UK), MCA (India), OpenCorporates.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Banking Integrations -->
+    <div class="zone zone-green glow-green">
+      <div class="zone-head">
+        <span>🏦</span>
+        <span>Banking &amp; Financial Verification</span>
+        <span class="chip chip-green" style="margin-left:auto;font-size:9px">Open Banking · OAuth 2.0</span>
+      </div>
+      <div class="zone-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🔗 Plaid / TrueLayer</div><div class="svc-sub">Open Banking — Bank Account Verification</div></div>
+            <span class="chip chip-amber" style="font-size:9px">High</span>
+          </div>
+          <div class="svc-body">Verify merchant bank account ownership via Open Banking consent flow. Pull 3–6 month transaction history for financial health assessment. Average balance and revenue trends feed into the Risk Agent ML model. Plaid covers US/CA; TrueLayer covers EU/UK.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">💳 SWIFT BIC / IBAN Validation</div><div class="svc-sub">Accuity · SWIFT Ref API</div></div>
+            <span class="chip chip-amber" style="font-size:9px">High</span>
+          </div>
+          <div class="svc-body">Validate merchant bank details (BIC, IBAN, sort code) before onboarding completes. Prevents misdirected payouts. SWIFT Ref returns bank name, country, branch, and validity. Accuity cross-checks OFAC status of receiving bank.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">📧 Twilio Verify + SendGrid</div><div class="svc-sub">Email &amp; SMS OTP</div></div>
+            <span class="chip chip-amber" style="font-size:9px">High</span>
+          </div>
+          <div class="svc-body">OTP verification on email and phone during onboarding (currently no verification). Application status notifications: received, processing, approved/rejected. Document expiry warnings 30/60/90 days before lapse.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications & Other -->
+    <div class="zone zone-cyan">
+      <div class="zone-head">
+        <span>📡</span>
+        <span>Notifications &amp; Webhook Delivery</span>
+        <span class="chip chip-cyan" style="margin-left:auto;font-size:9px">Async · Signed · Retried</span>
+      </div>
+      <div class="zone-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🔔 Svix Webhooks</div><div class="svc-sub">Signed Event Delivery to Partners</div></div>
+            <span class="chip chip-blue" style="font-size:9px">Medium</span>
+          </div>
+          <div class="svc-body">HMAC-signed webhook events on application status changes. Retry logic with exponential backoff. Delivery logs and merchant self-service portal to manage subscriptions and replay failed events.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">🔐 Signicat / DocuSign</div><div class="svc-sub">eSignature on Merchant Agreement</div></div>
+            <span class="chip chip-blue" style="font-size:9px">Medium</span>
+          </div>
+          <div class="svc-body">Legally binding digital signature on merchant T&amp;Cs and service agreement. eIDAS-qualified signatures for EU. Timestamped and tamper-evident. Replaces the current manual signing step in the onboarding flow.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div><div class="svc-name">📊 VIES / GSTIN / EIN</div><div class="svc-sub">Tax Registration Validation</div></div>
+            <span class="chip chip-blue" style="font-size:9px">Medium</span>
+          </div>
+          <div class="svc-body">Verify tax registration numbers are real and currently active. EU: EC VIES API (free). India: GSTN API. US: IRS EIN validation. Prevents shell company onboarding with fabricated tax IDs.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 6: DATA PLANE ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--green)">Layer 6 — Data Plane (Managed, Multi-AZ, Encrypted at Rest)</div>
+  <div class="zone zone-green glow-green">
+    <div class="zone-head">
+      <span style="font-size:18px">🗄️</span>
+      <span>Data Services — All Encrypted at Rest (SSE-KMS) · Replicated Across 3 AZs</span>
+      <span class="chip chip-green" style="margin-left:auto;font-size:9px">Zero single point of failure</span>
+    </div>
+    <div class="zone-body">
+      <div class="grid-4">
+        <div class="svc glow-green">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">🍃 MongoDB Atlas M10+</div>
+              <div class="svc-sub">Primary application database</div>
+            </div>
+            <span class="chip chip-green" style="font-size:9px">3-node replica</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>3-node replica set across 3 AZs</li>
+              <li>CSFLE (Client-Side Field Level Encryption) for PII</li>
+              <li>Encrypted fields: <code>taxId</code>, <code>bankAccount</code>, <code>fullName</code></li>
+              <li>Compound indexes: <code>(status, email)</code>, <code>(status, phone)</code></li>
+              <li>Automated backups · Point-in-time recovery (7 days)</li>
+              <li>Atlas Search for admin full-text queries</li>
+              <li>Audit log to S3 for GDPR Article 30 compliance</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">⚡ Redis Cluster</div>
+              <div class="svc-sub">Caching · Session · Rate-limit counters</div>
+            </div>
+            <span class="chip chip-teal" style="font-size:9px">ElastiCache</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>AWS ElastiCache for Redis — cluster mode</li>
+              <li>Replaces in-process <code>Map&lt;id, app&gt;</code> (lost on restart)</li>
+              <li>Rate-limit counters per merchant ID</li>
+              <li>Application processing state cache (TTL: 30 min)</li>
+              <li>Session token revocation list</li>
+              <li>Auth nonce store for PKCE flow</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">🗂️ AWS S3</div>
+              <div class="svc-sub">Document storage · Static assets</div>
+            </div>
+            <span class="chip chip-blue" style="font-size:9px">SSE-KMS</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>Uploaded documents: SSE-KMS encrypted, versioned</li>
+              <li>Access via pre-signed URLs only (no public read)</li>
+              <li>Bucket policy: deny non-TLS requests</li>
+              <li>Object Lock (WORM) for compliance documents</li>
+              <li>S3 Access Logs → Athena for audit queries</li>
+              <li>Lifecycle: move to Glacier after 90 days</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head">
+            <div>
+              <div class="svc-name">🔐 HashiCorp Vault</div>
+              <div class="svc-sub">Secrets management · PKI</div>
+            </div>
+            <span class="chip chip-red" style="font-size:9px">Zero .env files</span>
+          </div>
+          <div class="svc-body">
+            <ul>
+              <li>All API keys, DB credentials, certs in Vault</li>
+              <li>Dynamic secrets: MongoDB credentials rotated hourly</li>
+              <li>PKI engine: mTLS certificates for all services</li>
+              <li>Kubernetes Auth method — pod identity (no static keys)</li>
+              <li>AWS KMS as Vault auto-unseal backend</li>
+              <li>Audit log: every secret access logged</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ LAYER 7: OBSERVABILITY ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--teal)">Layer 7 — Observability, CI/CD &amp; Compliance Reporting</div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="zone zone-teal glow-teal">
+      <div class="zone-head">
+        <span>📡</span>
+        <span>OpenTelemetry + Grafana Stack</span>
+        <span class="chip chip-teal" style="margin-left:auto;font-size:9px">Distributed tracing</span>
+      </div>
+      <div class="zone-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">🔭 OpenTelemetry Collector</div><div class="svc-sub">Traces · Metrics · Logs</div></div></div>
+          <div class="svc-body">Auto-instrumentation on Node.js (via <code>@opentelemetry/auto-instrumentations-node</code>) and Spring Boot (via Micrometer). Trace IDs propagated across React → Node → RabbitMQ → Java services. W3C TraceContext headers on all requests.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">📊 Grafana + Loki + Tempo</div><div class="svc-sub">Dashboards · Log search · Trace viewer</div></div></div>
+          <div class="svc-body">Pre-built dashboards: application throughput, agent latency P50/P95/P99, queue depth, AI call rate, error rate per service. Loki for log aggregation (PII masked). Tempo for distributed trace visualisation. Alertmanager → PagerDuty on SLA breach.</div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">🚨 PagerDuty Alerting</div><div class="svc-sub">On-call escalation</div></div></div>
+          <div class="svc-body">Alerts: DLQ depth &gt; 0, agent silent for &gt; 60 s, Textract error rate &gt; 5%, MongoDB replica lag &gt; 10 s, SLA timer breach on MANUAL_REVIEW applications (&gt; 48 h without decision).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone zone-slate">
+      <div class="zone-head">
+        <span>🔄</span>
+        <span>CI/CD &amp; Compliance Reporting</span>
+        <span class="chip chip-gray" style="margin-left:auto;font-size:9px">GitHub Actions · GitOps</span>
+      </div>
+      <div class="zone-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">⚙️ GitHub Actions Pipeline</div><div class="svc-sub">Build · Test · Scan · Deploy</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>Jest (frontend) + Supertest (backend API) on every PR</li>
+              <li>TestContainers for Java integration tests (MCC, Risk)</li>
+              <li>SAST: Semgrep + Snyk dependency scan</li>
+              <li>Docker image build → GHCR → Trivy vulnerability scan</li>
+              <li>GitOps deploy via ArgoCD to EKS (Helm charts)</li>
+              <li>Canary deployments: 5% → 25% → 100% with auto-rollback on error rate spike</li>
+            </ul>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-head"><div><div class="svc-name">📋 Compliance Reporting</div><div class="svc-sub">GDPR · PCI-DSS · FCA</div></div></div>
+          <div class="svc-body">
+            <ul>
+              <li>GDPR Article 30 processing records auto-generated from audit log</li>
+              <li>SLA compliance report: applications decided within regulatory window</li>
+              <li>LIME + KYC findings rendered into human-readable rejection letters</li>
+              <li>SAR (Suspicious Activity Report) auto-filing via Actico/Napier on AML match</li>
+              <li>Monthly re-KYC scheduler: annual for LOW, quarterly for HIGH risk merchants</li>
+              <li>Document expiry tracker: 30 / 60 / 90-day renewal alerts + auto-suspend on lapse</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════ HACKATHON VS PRODUCTION COMPARISON ════════════ -->
+<div class="gap-section">
+  <div class="sec-label" style="color:var(--slate)">Hackathon vs Production — Component Comparison</div>
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>🔴 Hackathon (Current)</th>
+          <th>✅ Production (This Diagram)</th>
+          <th>Key Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Frontend Delivery</strong></td>
+          <td><span class="vs-badge">CRA dev server :3000</span></td>
+          <td><span class="prod-badge">S3 + CloudFront CDN</span></td>
+          <td>Global low-latency, HTTPS enforced, no Node process needed for static assets</td>
+        </tr>
+        <tr>
+          <td><strong>Auth / Identity</strong></td>
+          <td><span class="vs-badge">JWT in sessionStorage · bcryptjs r:12</span></td>
+          <td><span class="prod-badge">AWS Cognito · PKCE · MFA for admins</span></td>
+          <td>Managed token rotation, MFA, PKCE prevents auth code interception</td>
+        </tr>
+        <tr>
+          <td><strong>API Gateway</strong></td>
+          <td><span class="vs-badge">None — direct Express</span></td>
+          <td><span class="prod-badge">Kong / AWS API Gateway + WAF</span></td>
+          <td>Centralised rate limiting, schema validation, versioning, WAF rules</td>
+        </tr>
+        <tr>
+          <td><strong>KYC Verification</strong></td>
+          <td><span class="vs-badge">Form field cross-check only</span></td>
+          <td><span class="prod-badge">Onfido biometric + Orbis company registry</span></td>
+          <td>No external lookup = no real identity verification; regulatory blocker</td>
+        </tr>
+        <tr>
+          <td><strong>AML / Sanctions</strong></td>
+          <td><span class="vs-badge">Hardcoded country/keyword rules</span></td>
+          <td><span class="prod-badge">ComplyAdvantage · MATCH List · FATF live feed</span></td>
+          <td>Rule-based AML is insufficient; OFAC screening is a legal requirement</td>
+        </tr>
+        <tr>
+          <td><strong>Document Storage</strong></td>
+          <td><span class="vs-badge">Local disk /backend/uploads/</span></td>
+          <td><span class="prod-badge">S3 SSE-KMS · pre-signed URLs · Object Lock</span></td>
+          <td>Lost on restart; plaintext; not auditable — GDPR + PCI-DSS violation</td>
+        </tr>
+        <tr>
+          <td><strong>Secrets</strong></td>
+          <td><span class="vs-badge">.env files (plaintext)</span></td>
+          <td><span class="prod-badge">HashiCorp Vault · dynamic DB credentials</span></td>
+          <td>Plaintext secrets in .env = immediate breach vector; Vault rotates hourly</td>
+        </tr>
+        <tr>
+          <td><strong>Database</strong></td>
+          <td><span class="vs-badge">Single MongoDB :27017</span></td>
+          <td><span class="prod-badge">MongoDB Atlas M10+ · 3-node replica · CSFLE</span></td>
+          <td>No HA, data loss on crash; PII must be field-level encrypted</td>
+        </tr>
+        <tr>
+          <td><strong>Caching</strong></td>
+          <td><span class="vs-badge">In-process ConcurrentHashMap</span></td>
+          <td><span class="prod-badge">AWS ElastiCache Redis Cluster</span></td>
+          <td>Lost on pod restart; doesn't scale across multiple replicas</td>
+        </tr>
+        <tr>
+          <td><strong>Message Broker</strong></td>
+          <td><span class="vs-badge">RabbitMQ Homebrew :5673</span></td>
+          <td><span class="prod-badge">3-node RabbitMQ Cluster · quorum queues</span></td>
+          <td>No HA; messages lost on single-node restart; non-standard port</td>
+        </tr>
+        <tr>
+          <td><strong>Textract Integration</strong></td>
+          <td><span class="vs-badge">Synchronous blocking call</span></td>
+          <td><span class="prod-badge">Async StartDocumentAnalysis + SNS callback</span></td>
+          <td>Blocks backend thread; times out on multi-page PDFs</td>
+        </tr>
+        <tr>
+          <td><strong>Service Comms</strong></td>
+          <td><span class="vs-badge">Plain HTTP localhost calls</span></td>
+          <td><span class="prod-badge">mTLS · mutual cert auth · Vault PKI</span></td>
+          <td>Man-in-the-middle risk; no service-to-service authentication</td>
+        </tr>
+        <tr>
+          <td><strong>Approval Workflow</strong></td>
+          <td><span class="vs-badge">Single admin approve/reject</span></td>
+          <td><span class="prod-badge">4-eyes maker-checker · configurable by risk level</span></td>
+          <td>Dual control is a regulatory requirement for payment acquirers</td>
+        </tr>
+        <tr>
+          <td><strong>Observability</strong></td>
+          <td><span class="vs-badge">console.log → /tmp</span></td>
+          <td><span class="prod-badge">OpenTelemetry · Grafana · Loki · PagerDuty</span></td>
+          <td>No cross-service tracing; no alerting on silent agent failures</td>
+        </tr>
+        <tr>
+          <td><strong>Deployment</strong></td>
+          <td><span class="vs-badge">nohup shell scripts</span></td>
+          <td><span class="prod-badge">EKS · HPA · ArgoCD GitOps · canary rollouts</span></td>
+          <td>One crash = total outage; no auto-recovery, no rollback capability</td>
+        </tr>
+        <tr>
+          <td><strong>Testing / CI</strong></td>
+          <td><span class="vs-badge">Zero tests · manual deploys</span></td>
+          <td><span class="prod-badge">Jest + Supertest + TestContainers · GitHub Actions</span></td>
+          <td>No regression detection; no safe deployment path in regulated environment</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ════════════ FOOTER VERDICT ════════════ -->
+<div style="background:linear-gradient(135deg,var(--green-dim),var(--teal-dim));border:1.5px solid #6ee7b7;border-radius:16px;padding:28px 32px;display:flex;align-items:flex-start;gap:20px;margin-top:0">
+  <span style="font-size:40px;flex-shrink:0">✅</span>
+  <div>
+    <div style="font-size:16px;font-weight:900;color:var(--green);margin-bottom:8px">What Stays Unchanged in Production</div>
+    <div style="font-size:13px;color:var(--text);line-height:1.9">
+      The <strong>AI pipeline architecture</strong> is production-quality as built: conditional LLM calls (KYC &lt; 85, Risk HIGH only), RAG classification via LangChain4j, Weka ML + LIME explainability, AWS Textract OCR, and the ~68% AI cost savings are genuine design wins that require minimal change. The <strong>core agent logic</strong> (KYC cross-validation, MCC RAG, Risk ML) is sound. The biggest gaps — now addressed in this production diagram — are in compliance integrations, secure secret and document management, HA data services, mTLS between services, and operational infrastructure.
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,85 @@
+{
+  "mappings": [
+    {
+      "name": "ComplyAdvantage - Search (CLEAR - no sanctions match)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/comply-advantage/searches"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "code": 200,
+          "status": "success",
+          "content": {
+            "data": {
+              "id": 12345678,
+              "ref": "1234567890.12345678",
+              "searcher_id": 1,
+              "assignee_id": 1,
+              "filters": {
+                "types": ["sanction", "warning", "fitness-probity", "pep"],
+                "exact_match": false,
+                "fuzziness": 0.6,
+                "remove_deceased": 0,
+                "match_status": "potential_match"
+              },
+              "hits": [],
+              "hits_count": 0,
+              "share_url": "https://app.complyadvantage.com/public/search/stub",
+              "match_status": "no_match",
+              "risk_level": "low",
+              "status": "finished",
+              "created_at": "2026-01-01 00:00:00",
+              "updated_at": "2026-01-01 00:00:00",
+              "tags": [],
+              "limit": 100,
+              "offset": 0,
+              "total_count": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "ComplyAdvantage - Search (HIGH RISK - sanctions match simulation)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/comply-advantage/searches",
+        "bodyPatterns": [
+          { "contains": "SANCTIONED_TEST_MERCHANT" }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "code": 200,
+          "status": "success",
+          "content": {
+            "data": {
+              "id": 99999999,
+              "hits_count": 1,
+              "match_status": "potential_match",
+              "risk_level": "high",
+              "status": "finished",
+              "hits": [
+                {
+                  "doc": {
+                    "aka": [{ "name": "SANCTIONED TEST" }],
+                    "entity_type": "company",
+                    "sources": ["OFAC SDN", "UN Consolidated List"],
+                    "types": ["sanction"]
+                  },
+                  "match_types": ["name_exact"],
+                  "score": 1.0
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

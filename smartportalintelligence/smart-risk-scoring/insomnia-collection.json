@@ -1,0 +1,94 @@
+{
+  "_type": "export",
+  "resources": [
+    {
+      "_type": "workspace",
+      "name": "Smart Risk Scoring",
+      "_id": "wrk_risk",
+      "resources": [
+        {
+          "_type": "request_group",
+          "name": "Risk Scoring API",
+          "_id": "fld_risk",
+          "resources": [
+            {
+              "_type": "request",
+              "_id": "req_health",
+              "name": "Health Check",
+              "method": "GET",
+              "url": "http://localhost:8080/api/risk/health"
+            },
+            {
+              "_type": "request",
+              "_id": "req_score_high",
+              "name": "Score - High Risk (DECLINED)",
+              "method": "POST",
+              "url": "http://localhost:8080/api/risk/score",
+              "headers": [{"name": "Content-Type", "value": "application/json"}],
+              "body": {
+                "mimeType": "application/json",
+                "text": "{\n  \"businessType\": \"Online\",\n  \"transactionVolume\": 150000,\n  \"location\": \"Miami\",\n  \"chargebackRate\": 0.12,\n  \"yearsInBusiness\": 2,\n  \"averageTransactionSize\": 500,\n  \"complianceScore\": 45\n}"
+              }
+            },
+            {
+              "_type": "request",
+              "_id": "req_score_medium",
+              "name": "Score - Medium Risk (CONDITIONAL)",
+              "method": "POST",
+              "url": "http://localhost:8080/api/risk/score",
+              "headers": [{"name": "Content-Type", "value": "application/json"}],
+              "body": {
+                "mimeType": "application/json",
+                "text": "{\n  \"businessType\": \"Travel\",\n  \"transactionVolume\": 120000,\n  \"location\": \"Dallas\",\n  \"chargebackRate\": 0.05,\n  \"yearsInBusiness\": 5,\n  \"averageTransactionSize\": 300,\n  \"complianceScore\": 55\n}"
+              }
+            },
+            {
+              "_type": "request",
+              "_id": "req_score_low",
+              "name": "Score - Low Risk (APPROVED)",
+              "method": "POST",
+              "url": "http://localhost:8080/api/risk/score",
+              "headers": [{"name": "Content-Type", "value": "application/json"}],
+              "body": {
+                "mimeType": "application/json",
+                "text": "{\n  \"businessType\": \"Retail\",\n  \"transactionVolume\": 30000,\n  \"location\": \"NewYork\",\n  \"chargebackRate\": 0.01,\n  \"yearsInBusiness\": 15,\n  \"averageTransactionSize\": 45,\n  \"complianceScore\": 95\n}"
+              }
+            },
+            {
+              "_type": "request",
+              "_id": "req_queue_status",
+              "name": "RabbitMQ - Queue Status",
+              "method": "GET",
+              "url": "http://localhost:8080/api/risk/queue/status"
+            },
+            {
+              "_type": "request",
+              "_id": "req_queue_high",
+              "name": "RabbitMQ - Queue High Risk",
+              "method": "POST",
+              "url": "http://localhost:8080/api/risk/queue",
+              "headers": [{"name": "Content-Type", "value": "application/json"}],
+              "body": {
+                "mimeType": "application/json",
+                "text": "{\n  \"businessType\": \"Online\",\n  \"transactionVolume\": 150000,\n  \"location\": \"Miami\",\n  \"chargebackRate\": 0.12,\n  \"yearsInBusiness\": 2,\n  \"averageTransactionSize\": 500,\n  \"complianceScore\": 45\n}"
+              }
+            },
+            {
+              "_type": "request",
+              "_id": "req_queue_low",
+              "name": "RabbitMQ - Queue Low Risk",
+              "method": "POST",
+              "url": "http://localhost:8080/api/risk/queue",
+              "headers": [{"name": "Content-Type", "value": "application/json"}],
+              "body": {
+                "mimeType": "application/json",
+                "text": "{\n  \"businessType\": \"Restaurant\",\n  \"transactionVolume\": 25000,\n  \"location\": \"Chicago\",\n  \"chargebackRate\": 0.02,\n  \"yearsInBusiness\": 20,\n  \"averageTransactionSize\": 35,\n  \"complianceScore\": 90\n}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

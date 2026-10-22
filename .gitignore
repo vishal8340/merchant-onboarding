@@ -1,0 +1,27 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+**/.env
+**/.env.*
+**/!.env.example
+
+# Dependencies and generated outputs
+node_modules/
+**/node_modules/
+**/target/
+build/
+coverage/
+.cache/
+.idea/
+
+# Runtime uploads and local data
+backend/uploads/
+**/uploads/
+*.csv
+*.ser
+
+# OS/editor files
+.DS_Store
+Thumbs.db

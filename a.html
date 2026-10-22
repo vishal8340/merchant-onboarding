@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+    <link rel="stylesheet" href="b.css">
+</head>
+
+<body>
+
+<div class="container">
+    <form class="registration-form">
+
+        <h2>Student Registration</h2>
+        <p class="subtitle">Create your student account</p>
+
+        <div class="form-group">
+            <label for="fullName">Full Name</label>
+            <input 
+                type="text" 
+                id="fullName" 
+                name="fullName"
+                placeholder="Enter your full name"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input 
+                type="email" 
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                required
+            >
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input 
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    placeholder="Phone number"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input 
+                    type="date"
+                    id="dob"
+                    name="dob"
+                >
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Gender</label>
+
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="gender" value="male">
+                    Male
+                </label>
+
+                <label>
+                    <input type="radio" name="gender" value="female">
+                    Female
+                </label>
+
+                <label>
+                    <input type="radio" name="gender" value="other">
+                    Other
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="country">Country</label>
+
+            <select id="country" name="country">
+                <option value="">Select Country</option>
+                <option value="india">India</option>
+                <option value="usa">USA</option>
+                <option value="uk">UK</option>
+                <option value="canada">Canada</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Skills</label>
+
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="skills" value="java">
+                    Java
+                </label>
+
+                <label>
+                    <input type="checkbox" name="skills" value="html">
+                    HTML
+                </label>
+
+                <label>
+                    <input type="checkbox" name="skills" value="css">
+                    CSS
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="address">Address</label>
+
+            <textarea
+                id="address"
+                name="address"
+                rows="4"
+                placeholder="Enter your address">
+            </textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+
+            <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter password"
+                required
+            >
+        </div>
+
+        <div class="terms">
+            <label>
+                <input type="checkbox" required>
+                I agree to the Terms and Conditions
+            </label>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="submit-btn">
+                Register
+            </button>
+
+            <button type="reset" class="reset-btn">
+                Reset
+            </button>
+        </div>
+
+    </form>
+</div>
+
+</body>
+</html>

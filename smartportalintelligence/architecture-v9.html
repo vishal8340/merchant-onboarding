@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merchant Onboarding — Architecture v9</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#fff;color:#1f2937;font-size:13px;line-height:1.5}
+.page{max-width:1440px;margin:0 auto;padding:32px 36px}
+.title-area{text-align:center;margin-bottom:10px}
+.title-area h1{font-size:28px;font-weight:800;color:#111827}
+.title-area .sub{font-size:12px;color:#6b7280;margin-top:4px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:14px 0 28px}
+.badge{font-size:11px;font-weight:600;padding:3px 11px;border-radius:20px;border:1px solid;white-space:nowrap}
+.b-blue{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
+.b-green{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
+.b-amber{color:#92400e;border-color:#fde68a;background:#fffbeb}
+.b-purple{color:#7c3aed;border-color:#ddd6fe;background:#f5f3ff}
+.b-teal{color:#0f766e;border-color:#99f6e4;background:#f0fdfa}
+.b-orange{color:#c2410c;border-color:#fed7aa;background:#fff7ed}
+.b-gray{color:#374151;border-color:#d1d5db;background:#f9fafb}
+.b-red{color:#b91c1c;border-color:#fca5a5;background:#fef2f2}
+/* column grid */
+.col-grid{display:grid;grid-template-columns:1fr 44px 1fr 44px 1fr 44px 1fr 44px 1fr;gap:0;align-items:start;margin-bottom:24px}
+.col-conn{display:flex;flex-direction:column;align-items:center;padding-top:50px;gap:4px}
+.conn-line{width:100%;height:2px;background:#d1d5db;position:relative}
+.conn-lbl{font-size:9px;color:#9ca3af;text-align:center;white-space:nowrap;line-height:1.3}
+/* layer */
+.layer{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+.layer-head{padding:9px 12px;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#fff;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.lh-port{font-size:9px;font-family:monospace;background:rgba(255,255,255,.22);padding:1px 7px;border-radius:8px;font-weight:700}
+.lh-blue{background:#2563eb}.lh-green{background:#16a34a}.lh-amber{background:#d97706}.lh-purple{background:#7c3aed}.lh-orange{background:#ea580c}
+.layer-body{padding:10px;display:flex;flex-direction:column;gap:9px;background:#fff}
+/* component block */
+.cb{border:1px solid #e5e7eb;border-radius:7px;overflow:hidden;font-size:11px}
+.cb-head{display:flex;align-items:center;gap:6px;padding:7px 9px;background:#f9fafb;border-bottom:1px solid #f3f4f6}
+.cb-icon{font-size:14px;flex-shrink:0}
+.cb-name{font-size:11px;font-weight:700;color:#111827}
+.cb-body{padding:7px 9px}
+.cb-body ul{padding-left:14px;display:flex;flex-direction:column;gap:2px}
+.cb-body li{color:#374151;font-size:10.5px;line-height:1.5}
+.cb-body li code{font-size:9.5px;background:#f3f4f6;border-radius:3px;padding:0 3px;font-family:monospace;color:#1f2937}
+.cb-sub{font-size:9.5px;color:#6b7280;padding:0 9px 6px;margin-top:-2px}
+.pub{color:#7c3aed;font-style:italic;font-size:9.5px;margin-top:5px;padding-left:2px}
+.new-tag{display:inline-block;font-size:8px;font-weight:800;color:#15803d;background:#dcfce7;border:1px solid #86efac;border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:middle;letter-spacing:.3px}
+/* sections */
+.section{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px}
+.section-head{padding:9px 16px;display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#374151}
+.section-body{padding:16px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.sub-block{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+.sub-block-head{padding:7px 12px;font-size:11px;font-weight:800;color:#111827;background:#f9fafb;border-bottom:1px solid #f3f4f6}
+.sub-block-body{padding:10px 12px}
+.sub-block-body ul{padding-left:16px;display:flex;flex-direction:column;gap:3px}
+.sub-block-body li{font-size:11px;color:#374151;line-height:1.5}
+.sub-block-body li code{font-size:10px;background:#f3f4f6;border-radius:3px;padding:0 3px;font-family:monospace;color:#1f2937}
+.sub-block-body p{font-size:11px;color:#374151;margin-bottom:5px}
+/* flow */
+.flow-list{display:flex;flex-direction:column;gap:0}
+.flow-item{display:flex;align-items:flex-start;gap:12px;padding:9px 0;border-bottom:1px solid #f3f4f6}
+.flow-item:last-child{border-bottom:none}
+.flow-num{width:22px;height:22px;border-radius:50%;flex-shrink:0;background:#2563eb;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.flow-num.guard{background:#dc2626}
+.flow-text{font-size:11.5px;color:#374151;line-height:1.6}
+.flow-text strong{color:#111827}
+.flow-text code{font-size:10px;background:#f3f4f6;border-radius:3px;padding:0 4px;font-family:monospace;color:#1f2937}
+/* tech stack table */
+.ts-table{width:100%;border-collapse:collapse;font-size:12px}
+.ts-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#6b7280;background:#f9fafb;border-bottom:2px solid #e5e7eb}
+.ts-table td{padding:7px 12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+.ts-table tr:last-child td{border-bottom:none}
+.ts-table tr:hover td{background:#f9fafb}
+.ts-table td:first-child{color:#6b7280;font-size:11px;width:170px}
+.ts-table td:nth-child(2){font-weight:700;color:#111827;width:220px}
+.ts-table td:nth-child(3){color:#374151;font-size:11px}
+/* state machine */
+.sm-wrap{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:12px 0 4px}
+.sm-node{display:inline-flex;align-items:center;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;border:2px solid;white-space:nowrap}
+.sm-arrow{font-size:18px;color:#9ca3af;padding:0 6px}
+.sm-branch{display:flex;flex-direction:column;gap:6px}
+.sm-rule{font-size:11px;color:#6b7280;margin-top:12px;line-height:1.7}
+.sm-rule strong{color:#374151}
+.sm-draft{border-color:#f97316;color:#ea580c;background:#fff7ed}
+.sm-sub{border-color:#3b82f6;color:#1d4ed8;background:#eff6ff}
+.sm-proc{border-color:#6366f1;color:#4f46e5;background:#eef2ff}
+.sm-approve{border-color:#22c55e;color:#15803d;background:#f0fdf4}
+.sm-manual{border-color:#a855f7;color:#7c3aed;background:#f5f3ff}
+.sm-reject{border-color:#ef4444;color:#b91c1c;background:#fef2f2}
+.sm-blocked{border-color:#dc2626;color:#b91c1c;background:#fef2f2;font-size:10px}
+/* queue routing */
+.qr-table{width:100%;border-collapse:collapse}
+.qr-table th{padding:4px 8px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;background:#f9fafb;border-bottom:1px solid #e5e7eb;text-align:left}
+.qr-table td{padding:5px 8px;border-bottom:1px solid #f3f4f6;font-size:10px}
+.qr-table tr:last-child td{border-bottom:none}
+.qr-table td:first-child{font-family:monospace;color:#0f766e;font-weight:700}
+.qr-table td:nth-child(2){font-family:monospace;color:#7c3aed}
+.qr-table td:nth-child(3){color:#6b7280;font-size:9.5px}
+/* duplicate guard callout */
+.guard-section{border:1.5px solid #fca5a5;border-radius:10px;overflow:hidden;margin-bottom:20px}
+.guard-head{padding:9px 16px;display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;background:#fef2f2;border-bottom:1px solid #fca5a5;color:#b91c1c}
+.guard-body{padding:14px 16px;background:#fff}
+.guard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.guard-card{border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;background:#fffafa}
+.guard-card-title{font-size:10px;font-weight:800;color:#b91c1c;margin-bottom:4px}
+.guard-card-body{font-size:10px;color:#374151;line-height:1.6}
+.guard-card-body code{font-size:9px;background:#fef2f2;border-radius:3px;padding:0 3px;font-family:monospace;color:#b91c1c}
+.footer{text-align:center;font-size:11px;color:#9ca3af;padding:20px 0 6px;border-top:1px solid #f3f4f6;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- TITLE -->
+<div class="title-area">
+  <h1>&#127970; Merchant Onboarding &mdash; Architecture v9</h1>
+  <div class="sub">Event-Driven &middot; RabbitMQ &middot; MongoDB &middot; React 18 &middot; Node.js &middot; TypeScript &middot; Java 25 &middot; LangChain4j &middot; Weka ML &middot; AWS Textract &middot; EPAM AI DIAL &middot; Multi-Layer Duplicate Guard</div>
+</div>
+
+<!-- BADGES -->
+<div class="badges">
+  <span class="badge b-blue">React 18</span>
+  <span class="badge b-blue">TypeScript</span>
+  <span class="badge b-blue">React Router v6</span>
+  <span class="badge b-blue">Axios</span>
+  <span class="badge b-green">Node.js + Express 4</span>
+  <span class="badge b-green">Mongoose ODM</span>
+  <span class="badge b-green">JWT &middot; bcryptjs</span>
+  <span class="badge b-green">Multer</span>
+  <span class="badge b-green">amqplib</span>
+  <span class="badge b-amber">RabbitMQ 3</span>
+  <span class="badge b-purple">Java 25 (Temurin)</span>
+  <span class="badge b-purple">Spring Boot 3.5</span>
+  <span class="badge b-purple">LangChain4j</span>
+  <span class="badge b-purple">Weka RandomForest</span>
+  <span class="badge b-purple">LIME Explainer</span>
+  <span class="badge b-teal">AWS Textract</span>
+  <span class="badge b-teal">EPAM AI DIAL</span>
+  <span class="badge b-teal">GPT-4o &middot; Claude 3.5</span>
+  <span class="badge b-orange">Ghostscript &middot; PDFBox</span>
+  <span class="badge b-gray">MongoDB</span>
+  <span class="badge b-gray">Docker Compose</span>
+  <span class="badge b-red">Multi-Layer Duplicate Guard</span>
+</div>
+
+<!-- MAIN COLUMNS -->
+<div class="col-grid">
+
+  <!-- L1 BROWSER -->
+  <div class="layer">
+    <div class="layer-head lh-blue"><span>LAYER 1 &mdash; BROWSER</span><span class="lh-port">localhost:3000</span></div>
+    <div class="layer-body">
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128272;</span><span class="cb-name">LoginScreen</span></div><div class="cb-body"><ul>
+        <li>Demo credential cards</li>
+        <li>&#128101; User / &#128202; Admin / &#128203; App Manager</li>
+        <li>Demo passwords are configured securely per deployment</li>
+        <li>JWT stored in AuthContext</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128202;</span><span class="cb-name">Dashboard</span></div><div class="cb-body"><ul>
+        <li>Application cards + progress stepper</li>
+        <li>Steps: Info → Upload Documents → Submit</li>
+        <li>Status badge per application</li>
+        <li>Navigate to next pending step</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128221;</span><span class="cb-name">ApplicationForm <span class="new-tag">GUARD</span></span></div><div class="cb-body"><ul>
+        <li>2-step wizard (Business Info → Contact)</li>
+        <li>Step 1→2: <code>POST /api/validate-merchant</code></li>
+        <li>Submit: full duplicate re-check</li>
+        <li>⚠ Inline 2-line error banner on match</li>
+        <li>isValidating state on buttons</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128193;</span><span class="cb-name">DocumentUpload (Upload Documents) <span class="new-tag">GUARD</span></span></div><div class="cb-body"><ul>
+        <li>9 document types (1 required)</li>
+        <li>Drag &amp; drop + browse · PDF/JPG/PNG</li>
+        <li>Duplicate check on page load</li>
+        <li>Blocking modal if active merchant</li>
+        <li>Submit button disabled on duplicate</li>
+        <li>AI validates document type instantly</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128203;</span><span class="cb-name">ApplicationStatus</span></div><div class="cb-body"><ul>
+        <li>Polls <code>GET /api/applications/:id</code> every 3 s</li>
+        <li>Agent scores + findings per agent</li>
+        <li>Audit timeline + status badge</li>
+        <li>Merchant credentials on APPROVED</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#129504;</span><span class="cb-name">DocumentIntelligence</span></div><div class="cb-body"><ul>
+        <li>AI agent pipeline visualisation</li>
+        <li>KYC / MCC / Risk scores &amp; findings</li>
+        <li>Textract KV raw viewer</li>
+        <li>Per-document results</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128101;</span><span class="cb-name">ReviewConsole</span></div><div class="cb-body"><ul>
+        <li>Lists MANUAL_REVIEW apps</li>
+        <li>APPROVE / REJECT decision</li>
+        <li>Reviewer name + comments</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128202;</span><span class="cb-name">TelemetryDashboard <span class="new-tag">NEW</span></span></div><div class="cb-body"><ul>
+        <li>AI Cost &amp; Token tracking</li>
+        <li>Per-app &amp; grand total cards</li>
+        <li>Per-call table (agent/model/latency/cost)</li>
+        <li>Auto-refresh every 15 s</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- CONN 1 -->
+  <div class="col-conn">
+    <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+    <div class="conn-lbl">REST/JSON<br>axios</div>
+  </div>
+
+  <!-- L2 SERVER -->
+  <div class="layer">
+    <div class="layer-head lh-green"><span>LAYER 2 &mdash; SERVER</span><span class="lh-port">localhost:3001</span></div>
+    <div class="layer-body">
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#127760;</span><span class="cb-name">Express REST API</span></div><div class="cb-body"><ul>
+        <li><code>POST /auth/login</code></li>
+        <li><code>POST /api/validate-merchant</code> <span class="new-tag">NEW</span></li>
+        <li><code>POST /api/applications</code> (+409 guard)</li>
+        <li><code>POST .../:id/documents</code></li>
+        <li><code>GET  .../:id/duplicate-check</code> <span class="new-tag">NEW</span></li>
+        <li><code>POST .../:id/submit</code> (+dup guard)</li>
+        <li><code>GET /api/applications</code></li>
+        <li><code>GET .../review/pending</code></li>
+        <li><code>POST .../:id/review</code></li>
+        <li><code>POST .../:id/credentials</code></li>
+        <li><code>POST .../:id/retry-risk</code></li>
+        <li><code>GET /api/telemetry</code></li>
+        <li><code>GET /api/telemetry/report</code></li>
+        <li><code>GET /health</code></li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128680;</span><span class="cb-name">Duplicate Guard <span class="new-tag">4 LAYERS</span></span></div><div class="cb-body"><ul>
+        <li>L1: Real-time <code>validate-merchant</code></li>
+        <li>L2: 409 on <code>POST /api/applications</code></li>
+        <li>L3: <code>duplicate-check</code> on doc upload load</li>
+        <li>L4: Pre-Textract guard on submit</li>
+        <li>Checks APPROVED apps only (name/email/phone)</li>
+        <li>Case-insensitive regex normalisation</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128272;</span><span class="cb-name">Auth &amp; Security</span></div><div class="cb-body"><ul>
+        <li>JWT — <code>expiresIn: '8h'</code></li>
+        <li>bcryptjs rounds: 12</li>
+        <li>Helmet · CORS</li>
+        <li>Role: USER / ADMIN / APP_MANAGER</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128193;</span><span class="cb-name">Multer File Upload</span></div><div class="cb-body"><ul>
+        <li>diskStorage → <code>/uploads/</code></li>
+        <li>PDF/JPG/PNG/JPEG · 5 MB limit</li>
+        <li>PDF→PNG via Ghostscript 200 DPI</li>
+        <li>DIAL AI doc-type validation</li>
+        <li>422 on mismatched document type</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#127900;</span><span class="cb-name">OnboardingOrchestrator</span></div><div class="cb-body"><ul>
+        <li>Textract on submit</li>
+        <li>Publishes 3 parallel agent tasks</li>
+        <li>Collects results via <code>agent.results</code></li>
+        <li><code>makeDecision()</code> → final status</li>
+        <li>MID + password generated on APPROVED</li>
+        <li>Persists via <code>findOneAndUpdate()</code></li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128225;</span><span class="cb-name">EventBus (amqplib)</span></div><div class="cb-body"><ul>
+        <li>connect / publish / consume</li>
+        <li>Graceful fallback mode</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128451;</span><span class="cb-name">Dual Storage</span></div><div class="cb-body"><ul>
+        <li>MongoDB primary (readyState === 1)</li>
+        <li>ApplicationStorage in-memory fallback</li>
+        <li>Auto-detects active connection</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128202;</span><span class="cb-name">Telemetry Service <span class="new-tag">NEW</span></span></div><div class="cb-body"><ul>
+        <li>Token usage per call (real + BPE-est)</li>
+        <li>Latency · cost (LLM + Textract)</li>
+        <li>In-memory + MongoDB merge</li>
+        <li>HTML report endpoint</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- CONN 2 -->
+  <div class="col-conn">
+    <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+    <div class="conn-lbl">AMQP<br>0-9-1</div>
+  </div>
+
+  <!-- L3 BROKER -->
+  <div class="layer">
+    <div class="layer-head lh-amber"><span>LAYER 3 &mdash; BROKER</span><span class="lh-port">:5672 &middot; UI :15672</span></div>
+    <div class="layer-body">
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128256;</span><span class="cb-name">Exchange</span></div><div class="cb-body"><ul>
+        <li><code>merchant.onboarding</code></li>
+        <li>Type: topic · durable</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128364;</span><span class="cb-name">Queues → Routing Keys</span></div><div class="cb-body">
+        <table class="qr-table">
+          <tr><th>Queue</th><th>Routing Key</th><th>Consumer</th></tr>
+          <tr><td>kyc.verification</td><td>agent.kyc</td><td>KYC Agent</td></tr>
+          <tr><td>mcc.categorization</td><td>agent.mcc</td><td>MCC Agent</td></tr>
+          <tr><td>risk.assessment</td><td>agent.risk</td><td>Risk Agent</td></tr>
+          <tr><td>agent.results</td><td>result.*</td><td>Orchestrator</td></tr>
+        </table>
+      </div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128051;</span><span class="cb-name">Docker</span></div><div class="cb-body"><ul>
+        <li><code>rabbitmq:3-management</code></li>
+        <li>Volume: <code>rabbitmq_data</code></li>
+        <li>admin / admin123</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- CONN 3 -->
+  <div class="col-conn">
+    <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+    <div class="conn-lbl">consume<br>parallel</div>
+  </div>
+
+  <!-- L4 AI AGENTS -->
+  <div class="layer">
+    <div class="layer-head lh-purple"><span>LAYER 4 &mdash; AI AGENTS</span><span class="lh-port">Node.js process</span></div>
+    <div class="layer-body">
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#129306;</span><span class="cb-name">KYC Agent</span></div><div class="cb-body"><ul>
+        <li>Cross-validate Textract KV vs form</li>
+        <li>Business name + Tax ID</li>
+        <li>Document quality score</li>
+        <li>Disposable email detect</li>
+        <li>EPAM AI DIAL → Claude 3.5</li>
+        <li>Score 0–100 + narrative</li>
+      </ul><p class="pub">Publishes → <code>result.kyc</code></p></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#127991;</span><span class="cb-name">MCC Agent</span></div><div class="cb-body"><ul>
+        <li>Rule-based MCC lookup</li>
+        <li>Textract keyword scan</li>
+        <li>MCC Analyser :8091 (3 retries)</li>
+        <li>LangChain4j RAG + GPT-4o</li>
+        <li>EPAM AI DIAL → Claude 3.5</li>
+        <li>⚠ fallback if confidence=0</li>
+      </ul><p class="pub">Publishes → <code>result.mcc</code></p></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#127919;</span><span class="cb-name">Risk Agent</span></div><div class="cb-body"><ul>
+        <li>Country + business risk rules</li>
+        <li>Fraud keyword scan</li>
+        <li>Smart Risk Scoring :8080</li>
+        <li>Weka ML + LIME explainer</li>
+        <li>EPAM AI DIAL → Claude 3.5</li>
+        <li>Score 0–100 + narrative</li>
+      </ul><p class="pub">Publishes → <code>result.risk</code></p></div></div>
+    </div>
+  </div>
+
+  <!-- CONN 4 -->
+  <div class="col-conn">
+    <div class="conn-line"><span style="position:absolute;right:-9px;top:-9px;color:#9ca3af;font-size:14px">&#9658;</span></div>
+    <div class="conn-lbl">HTTP<br>REST</div>
+  </div>
+
+  <!-- L5 AI SERVICES -->
+  <div class="layer">
+    <div class="layer-head lh-orange"><span>LAYER 5 &mdash; AI SERVICES</span><span class="lh-port">Java 25</span></div>
+    <div class="layer-body">
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#127991;</span><span class="cb-name">MCC Analyser</span></div>
+        <div class="cb-sub">Spring Boot 3.5 · :8091</div>
+        <div class="cb-body"><ul>
+          <li><code>POST /api/v1/onboarding/classify</code></li>
+          <li>LangChain4j RAG pipeline</li>
+          <li>MCC Handbook PDF indexed</li>
+          <li>text-embedding-3-small</li>
+          <li>GPT-4o via EPAM AI Proxy</li>
+          <li>Auth: <code>API_KEY</code> env var</li>
+          <li>Fallback: confidence=0.0</li>
+        </ul></div>
+      </div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#127919;</span><span class="cb-name">Smart Risk Scoring</span></div>
+        <div class="cb-sub">Spring Boot 3.5 · :8080</div>
+        <div class="cb-body"><ul>
+          <li><code>POST /api/risk/score</code></li>
+          <li>LLM Fraud Detection (GPT-4o)</li>
+          <li>Weka RandomForest (ML)</li>
+          <li>risk_model.ser · 10 features</li>
+          <li>LIME feature explanation</li>
+          <li>Auth: <code>--openai.api.key</code></li>
+        </ul></div>
+      </div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#128269;</span><span class="cb-name">AWS Textract</span></div><div class="cb-body"><ul>
+        <li>AnalyzeDocument · FORMS</li>
+        <li>PDF→PNG (Ghostscript)</li>
+        <li>Key-value extraction</li>
+        <li>Region: eu-west-1</li>
+      </ul></div></div>
+      <div class="cb"><div class="cb-head"><span class="cb-icon">&#129302;</span><span class="cb-name">EPAM AI DIAL</span></div><div class="cb-body"><ul>
+        <li>dial.lab.epam.com</li>
+        <li>Model: claude-3-5-sonnet</li>
+        <li>Header: <code>Api-Key: ...</code></li>
+        <li>Used by all 3 agents + doc-type validation</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+</div><!-- /col-grid -->
+
+<!-- DUPLICATE GUARD DETAIL -->
+<div class="guard-section">
+  <div class="guard-head">&#128680;&nbsp; MULTI-LAYER DUPLICATE MERCHANT GUARD — NEW in v9</div>
+  <div class="guard-body">
+    <div class="guard-grid">
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 1 — Real-Time Validation</div>
+        <div class="guard-card-body">
+          <code>POST /api/validate-merchant</code><br>
+          Called at Step 1→2 transition (businessName) and on final submit (all fields).<br>
+          No application record created. Returns <code>isDuplicate</code> + <code>duplicateFields[]</code>.<br>
+          Shows inline 2-line amber error banner. Blocks Next / Submit buttons.
+        </div>
+      </div>
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 2 — Application Creation Guard</div>
+        <div class="guard-card-body">
+          <code>POST /api/applications</code><br>
+          Checks APPROVED merchants before inserting DRAFT record.<br>
+          Returns <code>HTTP 409 MERCHANT_ALREADY_ACTIVE</code> if match found.<br>
+          Frontend maps 409 to inline error + resets to offending step.
+        </div>
+      </div>
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 3 — Document Upload Page</div>
+        <div class="guard-card-body">
+          <code>GET /api/applications/:id/duplicate-check</code><br>
+          Called on page load of Upload Documents screen.<br>
+          Sets blocking overlay modal — user cannot upload or submit.<br>
+          Helper: <code>checkDuplicateForApp(appId)</code> excludes self.
+        </div>
+      </div>
+      <div class="guard-card">
+        <div class="guard-card-title">Layer 4 — Pre-Textract Submit Guard</div>
+        <div class="guard-card-body">
+          <code>POST /api/applications/:id/submit</code><br>
+          Final check before Textract runs &amp; agents are invoked.<br>
+          Blocks submission even if layers 1-3 were bypassed.<br>
+          Returns <code>HTTP 409</code> — prevents duplicate from entering pipeline.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PERSISTENCE -->
+<div class="section">
+  <div class="section-head">&#128451;&nbsp; PERSISTENCE LAYER</div>
+  <div class="section-body"><div class="two-col">
+    <div class="sub-block">
+      <div class="sub-block-head">&#127807; MongoDB + Mongoose (primary)</div>
+      <div class="sub-block-body"><ul>
+        <li>Mongoose ODM · DB: <code>merchant-onboarding</code></li>
+        <li>Collection: <code>applications</code> — inline schema · timestamps</li>
+        <li>Collection: <code>users</code> — bcrypt hashed (rounds: 12)</li>
+        <li>Mixed[] for agentResults, documents, auditLog</li>
+        <li>Auto-detected via <code>readyState === 1</code></li>
+        <li><code>findOneAndUpdate</code> on agent completion</li>
+        <li>Case-insensitive regex for duplicate checks</li>
+      </ul></div>
+    </div>
+    <div class="sub-block">
+      <div class="sub-block-head">&#128190; In-Memory Fallback + File Storage</div>
+      <div class="sub-block-body"><ul>
+        <li><code>ApplicationStorage</code> — <code>Map&lt;id, MerchantApplication&gt;</code></li>
+        <li>save / get / getAll / getPendingReview</li>
+        <li>Used when MongoDB unavailable</li>
+        <li>Telemetry stored in-memory per application</li>
+        <li>Uploaded files: <code>/backend/uploads/</code> (local disk)</li>
+        <li>Unique filename: <code>fieldname-ts-random.ext</code></li>
+      </ul></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- E2E FLOW -->
+<div class="section">
+  <div class="section-head">&#128204;&nbsp; End-to-End Request Flow</div>
+  <div class="section-body"><div class="flow-list">
+    <div class="flow-item"><div class="flow-num">1</div><div class="flow-text">User logs in → <code>POST /auth/login</code> → bcrypt.compare (rounds 12) → <strong>JWT issued (8 h)</strong> → stored in AuthContext → ProtectedRoute guards all views</div></div>
+    <div class="flow-item"><div class="flow-num guard">⛔</div><div class="flow-text"><strong>GUARD L1:</strong> User fills Step 1 → clicks Next → <code>POST /api/validate-merchant {businessName}</code> → if APPROVED match found: <strong>inline error shown, step blocked</strong> · User cannot advance until different name entered</div></div>
+    <div class="flow-item"><div class="flow-num">2</div><div class="flow-text">User completes Step 2 → clicks Submit → <code>POST /api/validate-merchant {businessName, email, phone}</code> → no duplicate → <code>POST /api/applications</code> → saved as <strong>DRAFT</strong> in MongoDB</div></div>
+    <div class="flow-item"><div class="flow-num guard">⛔</div><div class="flow-text"><strong>GUARD L2:</strong> <code>POST /api/applications</code> re-checks APPROVED merchants on server side → returns <code>HTTP 409</code> on match → frontend shows inline error + resets to offending step</div></div>
+    <div class="flow-item"><div class="flow-num">3</div><div class="flow-text">User navigates to <strong>Upload Documents</strong> → page loads → <code>GET /api/applications/:id/duplicate-check</code> called → if duplicate: <strong>blocking modal overlay</strong> appears, upload disabled</div></div>
+    <div class="flow-item"><div class="flow-num">4</div><div class="flow-text">User uploads documents → <code>POST /api/applications/:id/documents</code> → <strong>Multer</strong> saves to <code>/uploads/</code> → PDF→PNG via Ghostscript (200 DPI) → EPAM AI DIAL validates doc type (GPT-4o) → 422 on mismatch</div></div>
+    <div class="flow-item"><div class="flow-num guard">⛔</div><div class="flow-text"><strong>GUARD L4:</strong> User clicks Submit → <code>POST /api/applications/:id/submit</code> → final server-side duplicate check before Textract runs → HTTP 409 if match → no pipeline invoked</div></div>
+    <div class="flow-item"><div class="flow-num">5</div><div class="flow-text">Submit accepted → status → <strong>SUBMITTED</strong> · <strong>AWS Textract</strong> AnalyzeDocument (FORMS) called per PNG → key-value pairs extracted</div></div>
+    <div class="flow-item"><div class="flow-num">6</div><div class="flow-text"><strong>Orchestrator</strong> publishes 3 parallel messages: <code>agent.kyc</code>, <code>agent.mcc</code>, <code>agent.risk</code> · status → <strong>PROCESSING</strong></div></div>
+    <div class="flow-item"><div class="flow-num">7</div><div class="flow-text"><strong>KYC Agent</strong> consumes <code>kyc.verification</code> → cross-validates Textract KV vs. form fields → document quality score → calls <strong>EPAM AI DIAL</strong> (Claude 3.5) → publishes <code>result.kyc</code></div></div>
+    <div class="flow-item"><div class="flow-num">8</div><div class="flow-text"><strong>MCC Agent</strong> consumes <code>mcc.categorization</code> → rule-based lookup → calls <strong>MCC Analyser :8091</strong> (LangChain4j RAG + GPT-4o) with 3 retries + exponential backoff → publishes <code>result.mcc</code></div></div>
+    <div class="flow-item"><div class="flow-num">9</div><div class="flow-text"><strong>Risk Agent</strong> consumes <code>risk.assessment</code> → country/fraud flags → calls <strong>Smart Risk Scoring :8080</strong> (Weka RandomForest → LIME → GPT-4o risk report) → publishes <code>result.risk</code></div></div>
+    <div class="flow-item"><div class="flow-num">10</div><div class="flow-text">Orchestrator collects all 3 results → <strong><code>makeDecision()</code></strong> → <strong>APPROVED</strong>, <strong>REJECTED</strong>, or <strong>MANUAL_REVIEW</strong> · Telemetry recorded (tokens, latency, cost) per call</div></div>
+    <div class="flow-item"><div class="flow-num">11</div><div class="flow-text">If <strong>AUTO APPROVED</strong> → <code>generateMerchantCredentials()</code> → Merchant ID (<code>MID-XXXX...</code>) + 12-char password stored · <code>findOneAndUpdate()</code> persists final state</div></div>
+    <div class="flow-item"><div class="flow-num">12</div><div class="flow-text">Frontend polls <code>GET /api/applications/:id</code> every <strong>3 seconds</strong> → live status in ApplicationStatus · TelemetryDashboard auto-refreshes every 15 s</div></div>
+    <div class="flow-item"><div class="flow-num">13</div><div class="flow-text">If <strong>MANUAL_REVIEW</strong> → ReviewConsole queries <code>GET .../review/pending</code> → admin enters decision → <code>POST .../:id/review</code> → APPROVED (MID generated) or REJECTED</div></div>
+    <div class="flow-item"><div class="flow-num">14</div><div class="flow-text">Approved merchant views <code>POST .../:id/credentials</code> → returns <code>merchantId</code> + <code>merchantPassword</code> only if APPROVED · HTTP 400 otherwise · Credentials never regenerated</div></div>
+  </div></div>
+</div>
+
+<!-- TECH STACK -->
+<div class="section">
+  <div class="section-head">&#128295;&nbsp; Tech Stack</div>
+  <div class="section-body" style="padding:0">
+    <table class="ts-table">
+      <thead><tr><th>Layer</th><th>Technology</th><th>Version / Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Frontend Framework</td><td>React</td><td>18 · TypeScript · CRA / react-scripts</td></tr>
+        <tr><td>Routing</td><td>React Router</td><td>v6 · BrowserRouter · ProtectedRoute HOC</td></tr>
+        <tr><td>HTTP Client</td><td>axios</td><td>REST to Node backend · /api/client.ts · auth header injected</td></tr>
+        <tr><td>Auth (Frontend)</td><td>AuthContext + JWT</td><td>Role-based: USER / ADMIN / APP_MANAGER · UserHeader role badge</td></tr>
+        <tr><td>Backend Runtime</td><td>Node.js + Express</td><td>Express 4 · TypeScript · ts-node dev · nodemon</td></tr>
+        <tr><td>Authentication</td><td>JWT + bcryptjs</td><td>jsonwebtoken · expiresIn: 8h · bcrypt rounds: 12</td></tr>
+        <tr><td>Duplicate Guard</td><td>4-Layer Validation</td><td>Real-time · 409 guard · page-load check · pre-submit final guard · APPROVED-only scope</td></tr>
+        <tr><td>Environment Config</td><td>dotenv</td><td>RABBITMQ_URL, MONGODB_URI, JWT_SECRET, DIAL_API_KEY, AWS_*</td></tr>
+        <tr><td>Database</td><td>MongoDB + Mongoose</td><td>localhost:27017 · DB: merchant-onboarding · inline schema · timestamps</td></tr>
+        <tr><td>In-Memory Fallback</td><td>ApplicationStorage</td><td>Map&lt;id, app&gt; — used when MongoDB down</td></tr>
+        <tr><td>File Upload</td><td>multer</td><td>diskStorage · 5 MB · PDF/JPG/PNG/JPEG</td></tr>
+        <tr><td>PDF Processing</td><td>Ghostscript</td><td>PDF→PNG · 200 DPI · first page · system binary</td></tr>
+        <tr><td>OCR / Document AI</td><td>AWS Textract</td><td>AnalyzeDocument · FORMS feature · eu-west-1 · KV extraction</td></tr>
+        <tr><td>Message Broker</td><td>RabbitMQ</td><td>3-management · Docker Compose · topic exchange: merchant.onboarding</td></tr>
+        <tr><td>AMQP Client</td><td>amqplib</td><td>0.10.x · graceful fallback if unavailable</td></tr>
+        <tr><td>Orchestration</td><td>OnboardingOrchestrator</td><td>orchestrator.ts · onComplete callback · makeDecision()</td></tr>
+        <tr><td>MCC AI Service</td><td>Spring Boot + LangChain4j</td><td>Java 25 (Temurin) · Spring Boot 3.5 · :8091 · @Lazy beans</td></tr>
+        <tr><td>MCC Knowledge Base</td><td>PDFBox + Embeddings</td><td>MCC_Handbook_Sample.pdf · text-embedding-3-small · in-memory vector store</td></tr>
+        <tr><td>Risk ML Service</td><td>Spring Boot + Weka</td><td>Java 25 · Spring Boot 3.5 · :8080 · RandomForest · risk_model.ser · 10 features</td></tr>
+        <tr><td>ML Explainability</td><td>LIME Explainer</td><td>Feature importance · human-readable breakdown per prediction</td></tr>
+        <tr><td>LLM — Agents</td><td>EPAM AI DIAL</td><td>dial.lab.epam.com · claude-3-5-sonnet · Header: Api-Key</td></tr>
+        <tr><td>LLM — Java Services</td><td>EPAM AI Proxy</td><td>ai-proxy.lab.epam.com · gpt-4o · API_KEY env / --openai.api.key arg</td></tr>
+        <tr><td>Telemetry</td><td>TelemetryService</td><td>Per-call: tokens (real+BPE-est), latency, cost · in-memory + MongoDB merge · 15 s auto-refresh</td></tr>
+        <tr><td>Type Safety</td><td>TypeScript</td><td>strict · ES2020 · skipLibCheck · tsconfig.json per service</td></tr>
+        <tr><td>Container</td><td>Docker Compose</td><td>RabbitMQ · MongoDB · named volumes · health checks</td></tr>
+        <tr><td>Start Script</td><td>start-all.sh</td><td>nohup all 4 services · API_KEY exported · 20 s health check wait</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- STATE MACHINE -->
+<div class="section">
+  <div class="section-head">&#128260;&nbsp; Application Status State Machine</div>
+  <div class="section-body">
+    <div class="sm-wrap">
+      <span class="sm-node sm-blocked">⛔ BLOCKED (dup)</span><span class="sm-arrow">|</span>
+      <span class="sm-node sm-draft">DRAFT</span><span class="sm-arrow">→</span>
+      <span class="sm-node sm-sub">SUBMITTED</span><span class="sm-arrow">→</span>
+      <span class="sm-node sm-proc">PROCESSING</span><span class="sm-arrow">→</span>
+      <div class="sm-branch">
+        <span class="sm-node sm-approve">✓ APPROVED</span>
+        <span class="sm-node sm-manual">⚠ MANUAL_REVIEW &nbsp;→&nbsp; APPROVED / REJECTED</span>
+        <span class="sm-node sm-reject">✗ REJECTED</span>
+      </div>
+    </div>
+    <div class="sm-rule">
+      <strong>Duplicate guard:</strong> Fires at Step 1→2, Step 2 submit, DRAFT creation, doc-upload load, and pre-Textract submit. Checks APPROVED collection only. &nbsp;|&nbsp;
+      <strong>Decision rules:</strong>&nbsp;
+      All scores ≥ 85 &amp; no reviewRequired → <strong>AUTO APPROVED</strong> (MID + password generated immediately) &nbsp;|&nbsp;
+      Any score 50–84 or reviewRequired=true → <strong>MANUAL_REVIEW</strong> (MID generated on admin APPROVE) &nbsp;|&nbsp;
+      Any agent FAILED or score &lt; 50 → <strong>REJECTED</strong> (no credentials ever generated)
+    </div>
+  </div>
+</div>
+
+<div class="footer">Architecture v9 &middot; BFSI Hackathon 2026 &middot; Merchant Onboarding System &middot; 26 April 2026</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "mappings": [
+    {
+      "name": "Twilio Verify - Send OTP",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/twilio/v2/Services/.*/Verifications"
+      },
+      "response": {
+        "status": 201,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "sid": "VExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "service_sid": "VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "to": "+15550001234",
+          "channel": "sms",
+          "status": "pending",
+          "url": "https://verify.twilio.com/v2/stub",
+          "date_created": "2026-01-01T00:00:00Z",
+          "date_updated": "2026-01-01T00:00:00Z",
+          "_local_note": "OTP stub: use code 123456 to verify"
+        }
+      }
+    },
+    {
+      "name": "Twilio Verify - Check OTP (APPROVED for code 123456)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/twilio/v2/Services/.*/VerificationCheck",
+        "bodyPatterns": [
+          { "contains": "Code=123456" }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "sid": "VExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "status": "approved",
+          "valid": true,
+          "channel": "sms"
+        }
+      }
+    },
+    {
+      "name": "Twilio Verify - Check OTP (PENDING for wrong code)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/twilio/v2/Services/.*/VerificationCheck"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "status": "pending",
+          "valid": false,
+          "channel": "sms"
+        }
+      }
+    }
+  ]
+}

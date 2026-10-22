@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Individual Agent Deep-Dive — Merchant Onboarding</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #060912;
+  --surface:    #0d1117;
+  --surface2:   #161b27;
+  --surface3:   #1c2333;
+  --border:     #21293a;
+  --text:       #e6edf3;
+  --muted:      #8b949e;
+  --blue:       #58a6ff;
+  --blue-dim:   #1f3558;
+  --purple:     #a78bfa;
+  --purple-dim: #2d1f52;
+  --green:      #3fb950;
+  --green-dim:  #0d2818;
+  --teal:       #2dd4bf;
+  --teal-dim:   #0a2420;
+  --amber:      #f59e0b;
+  --amber-dim:  #2a1d06;
+  --red:        #f85149;
+  --red-dim:    #2d0f0e;
+  --cyan:       #38bdf8;
+  --cyan-dim:   #082030;
+  --orange:     #fb923c;
+  --orange-dim: #2a1206;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 40px 32px 80px;
+  min-width: 1000px;
+}
+
+/* ── HEADER ── */
+.page-header { text-align: center; margin-bottom: 56px; }
+.page-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--blue-dim); border: 1px solid #2a4a78;
+  border-radius: 999px; padding: 5px 18px;
+  font-size: 11px; font-weight: 700; color: var(--blue);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px;
+}
+.page-header h1 {
+  font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1;
+  background: linear-gradient(135deg, #58a6ff 0%, #a78bfa 50%, #2dd4bf 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 12px;
+}
+.page-header p { font-size: 14px; color: var(--muted); max-width: 680px; margin: 0 auto; line-height: 1.6; }
+
+/* ── NAV TABS ── */
+.tab-nav {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 22px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+}
+.tab-btn:hover { border-color: #2a3a58; color: var(--text); }
+.tab-btn.active { color: var(--text); }
+.tab-btn .tab-icon { font-size: 16px; }
+
+.tab-btn.t-kyc.active   { background: #0d1929; border-color: var(--blue);   color: var(--blue); }
+.tab-btn.t-mcc.active   { background: #160f2a; border-color: var(--purple); color: var(--purple); }
+.tab-btn.t-risk.active  { background: #1a1000; border-color: var(--amber);  color: var(--amber); }
+.tab-btn.t-orch.active  { background: #082020; border-color: var(--teal);   color: var(--teal); }
+
+/* ── AGENT PANELS ── */
+.agent-panel { display: none; }
+.agent-panel.visible { display: block; }
+
+/* ── SECTION HEADING ── */
+.section-label {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em;
+  color: var(--muted); margin-bottom: 24px; display: flex; align-items: center; gap: 12px;
+}
+.section-label::before, .section-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+/* ── HERO CARD ── */
+.hero-card {
+  border-radius: 16px; border: 1px solid; padding: 32px 36px;
+  margin-bottom: 32px; position: relative; overflow: hidden;
+}
+.hero-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 80% 50%, rgba(88,166,255,0.06), transparent);
+  pointer-events: none;
+}
+.hero-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px; align-items: start;
+}
+.hero-name {
+  font-size: 28px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 6px;
+}
+.hero-role { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.hero-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+.hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+.hero-stat-value { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.hero-stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stats-col { display: flex; flex-direction: column; gap: 18px; }
+
+/* ── TWO-COL GRID ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.full-col { margin-bottom: 20px; }
+
+/* ── INFO CARD ── */
+.info-card {
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); overflow: hidden;
+}
+.info-card-hdr {
+  padding: 11px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+}
+.info-card-body { padding: 16px; }
+
+/* ── STEP LIST ── */
+.step-list { display: flex; flex-direction: column; gap: 0; }
+.step {
+  display: flex; gap: 14px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.step:last-child { border-bottom: none; }
+.step-num {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; border: 1.5px solid;
+  margin-top: 1px;
+}
+.step-content { flex: 1; }
+.step-title { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
+.step-detail { font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+.step-code {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px; margin-top: 8px;
+  color: #7dd3fc; line-height: 1.6; white-space: pre-wrap;
+}
+
+/* ── KV TABLE ── */
+.kv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kv-table tr { border-bottom: 1px solid var(--border); }
+.kv-table tr:last-child { border-bottom: none; }
+.kv-table td { padding: 9px 12px; vertical-align: top; line-height: 1.5; }
+.kv-table td:first-child { color: var(--muted); font-weight: 600; white-space: nowrap; width: 38%; }
+.kv-table td:last-child { color: var(--text); }
+
+/* ── BADGE ROWS ── */
+.badge-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 16px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid;
+}
+
+/* ── DECISION MATRIX ── */
+.dm-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 16px;
+}
+.dm-cell {
+  border-radius: 8px; padding: 12px 14px; border: 1px solid;
+  text-align: center;
+}
+.dm-cell .dm-range { font-size: 18px; font-weight: 800; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+.dm-cell .dm-status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.dm-cell .dm-desc { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+
+/* ── FLOW DIAGRAM ── */
+.flow-diagram { padding: 20px; }
+.flow-row-d { display: flex; align-items: center; gap: 0; margin-bottom: 10px; flex-wrap: wrap; }
+.flow-node {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  min-width: 90px;
+}
+.flow-box {
+  border-radius: 10px; border: 1px solid; padding: 9px 14px;
+  font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;
+}
+.flow-arrow {
+  width: 32px; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 14px; flex-shrink: 0;
+}
+.flow-label { font-size: 10px; color: var(--muted); }
+
+/* ── CHECK LIST ── */
+.check-list { display: flex; flex-direction: column; gap: 0; }
+.check-item {
+  display: flex; gap: 12px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); align-items: flex-start;
+}
+.check-item:last-child { border-bottom: none; }
+.check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.check-main { flex: 1; }
+.check-title { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+.check-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.check-rule {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 8px; margin-top: 5px;
+  display: inline-block; color: #fde68a;
+}
+
+/* ── SIGNAL TABLE ── */
+.sig-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.sig-table th { padding: 8px 12px; text-align: left; background: var(--surface3); color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; border-bottom: 1px solid var(--border); }
+.sig-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.sig-table tr:last-child td { border-bottom: none; }
+.sig-table .code { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--cyan); }
+.sig-table .threshold { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--amber); }
+
+/* ── COLOUR THEMES ── */
+/* KYC – blue */
+.t-kyc-hero   { border-color: var(--blue-dim); background: linear-gradient(135deg,#0d1929 0%, #0d1117 100%); }
+.t-kyc-hdr    { background: #0d1929; color: var(--blue); }
+.t-kyc-num    { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+.t-kyc-name   { color: var(--blue); }
+.t-kyc-stat   { color: var(--blue); }
+.b-kyc        { background: #1f3558; color: #93c5fd; border-color: #2a4a78; }
+
+/* MCC – purple */
+.t-mcc-hero   { border-color: var(--purple-dim); background: linear-gradient(135deg,#160f2a 0%, #0d1117 100%); }
+.t-mcc-hdr    { background: #160f2a; color: var(--purple); }
+.t-mcc-num    { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+.t-mcc-name   { color: var(--purple); }
+.t-mcc-stat   { color: var(--purple); }
+.b-mcc        { background: #2d1f52; color: #c4b5fd; border-color: #4c3585; }
+
+/* Risk – amber */
+.t-risk-hero  { border-color: var(--amber-dim); background: linear-gradient(135deg,#1a1400 0%, #0d1117 100%); }
+.t-risk-hdr   { background: #1a1400; color: var(--amber); }
+.t-risk-num   { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+.t-risk-name  { color: var(--amber); }
+.t-risk-stat  { color: var(--amber); }
+.b-risk       { background: #2a1d06; color: #fde68a; border-color: #4a3010; }
+
+/* Orchestrator – teal */
+.t-orch-hero  { border-color: var(--teal-dim); background: linear-gradient(135deg,#082020 0%, #0d1117 100%); }
+.t-orch-hdr   { background: #082020; color: var(--teal); }
+.t-orch-num   { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
+.t-orch-name  { color: var(--teal); }
+.t-orch-stat  { color: var(--teal); }
+.b-orch       { background: #0a2420; color: #5eead4; border-color: #154038; }
+
+.b-green  { background: #0d2818; color: #86efac; border-color: #1a4629; }
+.b-red    { background: #2d0f0e; color: #fca5a5; border-color: #4a1a18; }
+.b-slate  { background: #1a2030; color: #94a3b8; border-color: #2a3548; }
+.b-orange { background: #2a1206; color: #fdba74; border-color: #4a2410; }
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+.mt16 { margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════════════════ -->
+<div class="page-header">
+  <div class="page-badge">🤖 AI Agent Architecture</div>
+  <h1>Individual Agent Deep-Dive</h1>
+  <p>Detailed breakdown of each AI agent's internal logic, data sources, decision pipeline,
+     scoring rules, thresholds, and integration points in the merchant onboarding platform.</p>
+</div>
+
+<!-- ═══════════════════════════ TAB NAV ══════════════════════════════════════ -->
+<div class="tab-nav">
+  <button class="tab-btn t-kyc active" onclick="showTab('kyc',this)">
+    <span class="tab-icon">🪪</span> KYC Agent
+  </button>
+  <button class="tab-btn t-mcc" onclick="showTab('mcc',this)">
+    <span class="tab-icon">🏷️</span> MCC Agent
+  </button>
+  <button class="tab-btn t-risk" onclick="showTab('risk',this)">
+    <span class="tab-icon">⚖️</span> Risk Agent
+  </button>
+  <button class="tab-btn t-orch" onclick="showTab('orch',this)">
+    <span class="tab-icon">🎼</span> Orchestrator
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!--  KYC AGENT                                                                -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="panel-kyc" class="agent-panel visible">
+
+  <!-- HERO -->
+  <div class="hero-card t-kyc-hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-name t-kyc-name">🪪 KYC Agent</div>
+        <div class="hero-role">Know Your Customer Verification</div>
+        <div class="hero-desc">
+          Verifies merchant identity and document authenticity using AWS Textract for OCR extraction,
+          cross-validates extracted fields against the application form, detects document quality issues,
+          and calls EPAM AI DIAL (GPT-4o) for a final compliance judgement.
+          Results are published to the event bus for the orchestrator.
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Processing Time</div>
+          <div class="hero-stat-value t-kyc-stat">~2 s</div>
+          <div class="hero-stat-sub">simulated delay + Textract + DIAL</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">AI Provider</div>
+          <div class="hero-stat-value t-kyc-stat" style="font-size:15px">EPAM AI DIAL</div>
+          <div class="hero-stat-sub">GPT-4o · JSON output</div>
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Queue</div>
+          <div class="hero-stat-value t-kyc-stat mono" style="font-size:13px">kyc.verification</div>
+          <div class="hero-stat-sub">RabbitMQ topic</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">Output Event</div>
+          <div class="hero-stat-value t-kyc-stat mono" style="font-size:13px">result.kyc</div>
+          <div class="hero-stat-sub">→ Orchestrator aggregation queue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="section-label">Processing Pipeline</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-kyc-hdr">🔄 Step-by-step Execution</div>
+      <div class="info-card-body">
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num t-kyc-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Receive from RabbitMQ</div>
+              <div class="step-detail">Agent listens on <span class="mono" style="color:var(--cyan)">QUEUE_KYC_VERIFICATION</span>. When a new merchant application arrives, it deserialises the full <code>MerchantApplication</code> object including all Textract pre-processed document results already attached by the upload endpoint.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Merge Textract Key-Value Pairs</div>
+              <div class="step-detail">All <span class="mono" style="color:var(--cyan)">textractResults[].keyValues</span> maps are merged into a single record. Keys extracted by AWS Textract (e.g. <em>businessName</em>, <em>taxId</em>, <em>email</em>, <em>licenseNumber</em>) are used for cross-validation.</div>
+              <div class="step-code">merged = {}
+textractResults.forEach(r => Object.assign(merged, r.keyValues))</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">3</div>
+            <div class="step-content">
+              <div class="step-title">Cross-Validate Business Name</div>
+              <div class="step-detail">Document-extracted business name is compared (case-insensitive substring match) against the application form value. A mismatch deducts 20 pts and escalates to MANUAL_REVIEW.</div>
+              <div class="step-code">nameMatch = app.businessName.toLowerCase().includes(doc.businessName.toLowerCase())
+✅ Match  → score +10 | ⚠️ Mismatch → score -20, MANUAL_REVIEW</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Cross-Validate Tax ID</div>
+              <div class="step-detail">Tax ID from documents is compared character-by-character (ignoring whitespace) with the application tax ID. This is the highest-weight check — a mismatch deducts 30 pts.</div>
+              <div class="step-code">docTaxId.replace(/\s/g,'') === appTaxId.replace(/\s/g,'')
+✅ Match  → score +10 | ⚠️ Mismatch → score -30, MANUAL_REVIEW</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">5</div>
+            <div class="step-content">
+              <div class="step-title">Document Quality Check</div>
+              <div class="step-detail">Total word count across all extracted documents is summed. Fewer than 10 words indicates a blank/low-quality scan and triggers a quality warning with -15 pts.</div>
+              <div class="step-code">totalWords = textractResults.reduce((s,r) => s + r.wordCount, 0)
+totalWords &lt; 10 → score -15, quality warning logged</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">6</div>
+            <div class="step-content">
+              <div class="step-title">Required Document Check</div>
+              <div class="step-detail">Validates that both <strong>BUSINESS_LICENSE</strong> and <strong>TAX_CERTIFICATE</strong> document types are present in the application. Any missing document triggers a -50 pts penalty and FAILED status.</div>
+              <div class="step-code">required = ['BUSINESS_LICENSE', 'TAX_CERTIFICATE']
+missing = required.filter(d => !uploadedDocTypes.includes(d))
+missing.length > 0 → score -50, status = FAILED</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">7</div>
+            <div class="step-content">
+              <div class="step-title">Field Format Validation</div>
+              <div class="step-detail">Business name length (min 3 chars), email format (@-check), and Tax ID format <span class="mono" style="color:var(--amber)">XX-XXXXXXX</span> are validated against the form submission.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">8</div>
+            <div class="step-content">
+              <div class="step-title">EPAM AI DIAL — KYC Compliance Analysis</div>
+              <div class="step-detail">The full merchant context (business name, tax ID, email, country, business type, document types, and all extracted KV pairs) is sent to DIAL (GPT-4o). The LLM returns a JSON with <span class="mono" style="color:var(--cyan)">kycScore</span>, <span class="mono" style="color:var(--cyan)">flags</span>, <span class="mono" style="color:var(--cyan)">recommendation</span> (PASS/REVIEW/FAIL), and a <span class="mono" style="color:var(--cyan)">summary</span>.</div>
+              <div class="step-code">System: "KYC compliance expert — return JSON: kycScore, flags[], recommendation, summary"
+Input:  businessName, taxId, email, country, businessType, documents[], extractedKV
+Output: { kycScore: 87, flags: [], recommendation: "PASS", summary: "..." }</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-kyc-num">9</div>
+            <div class="step-content">
+              <div class="step-title">Telemetry + Publish Result</div>
+              <div class="step-detail">Token counts, latency, model ID, and estimated cost are recorded via <span class="mono" style="color:var(--cyan)">TelemetryService</span>. Final result is published to <span class="mono" style="color:var(--cyan)">result.kyc</span> for the orchestrator.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORING + CHECKS -->
+  <div class="two-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-kyc-hdr">📊 Score Decision Matrix</div>
+      <div class="dm-grid">
+        <div class="dm-cell" style="border-color:#1a4629;background:#0d2818">
+          <div class="dm-range" style="color:#3fb950">85–100</div>
+          <div class="dm-status" style="color:#3fb950">✅ PASSED</div>
+          <div class="dm-desc">All checks pass, documents verified, no anomalies</div>
+        </div>
+        <div class="dm-cell" style="border-color:#4a3010;background:#2a1d06">
+          <div class="dm-range" style="color:var(--amber)">50–84</div>
+          <div class="dm-status" style="color:var(--amber)">⚠️ MANUAL REVIEW</div>
+          <div class="dm-desc">Minor issues, borderline compliance, name/ID soft mismatches</div>
+        </div>
+        <div class="dm-cell" style="border-color:#4a1a18;background:#2d0f0e">
+          <div class="dm-range" style="color:var(--red)">0–49</div>
+          <div class="dm-status" style="color:var(--red)">❌ FAILED</div>
+          <div class="dm-desc">Missing documents, hard Tax ID mismatch, invalid fields</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-hdr t-kyc-hdr">🎯 Score Adjustments</div>
+      <div class="info-card-body" style="padding:0">
+        <table class="kv-table">
+          <tr><td>Business name verified (doc match)</td><td style="color:var(--green)">+10 pts</td></tr>
+          <tr><td>Tax ID verified (doc match)</td><td style="color:var(--green)">+10 pts</td></tr>
+          <tr><td>Missing required document</td><td style="color:var(--red)">−50 pts</td></tr>
+          <tr><td>Tax ID mismatch (hard)</td><td style="color:var(--red)">−30 pts</td></tr>
+          <tr><td>Business name mismatch</td><td style="color:var(--red)">−20 pts</td></tr>
+          <tr><td>Invalid email format</td><td style="color:var(--red)">−20 pts</td></tr>
+          <tr><td>Low-quality document (&lt;10 words)</td><td style="color:var(--amber)">−15 pts</td></tr>
+          <tr><td>Business name too short (&lt;3 chars)</td><td style="color:var(--red)">−30 pts</td></tr>
+          <tr><td>Invalid Tax ID format (XX-XXXXXXX)</td><td style="color:var(--red)">−40 pts</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTEGRATIONS -->
+  <div class="three-col mt16">
+    <div class="info-card">
+      <div class="info-card-hdr t-kyc-hdr">☁️ AWS Textract</div>
+      <div class="info-card-body">
+        <div class="step-detail">Documents uploaded as PNG/PDF are processed by AWS Textract via <span class="mono" style="color:var(--cyan)">textractService.ts</span> at upload time. Results (text, keyValues, wordCount, tables) are attached to the application object before agents are triggered.</div>
+        <div class="badge-row" style="padding:10px 0 0">
+          <span class="badge b-kyc">Key-Value Extraction</span>
+          <span class="badge b-kyc">Full Text OCR</span>
+          <span class="badge b-kyc">Table Detection</span>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-hdr t-kyc-hdr">🤖 EPAM AI DIAL</div>
+      <div class="info-card-body">
+        <div class="step-detail">DIAL is the LLM gateway (backed by GPT-4o). The KYC agent sends the full context and receives a structured JSON. Fallback to rule-based scoring if DIAL is unreachable (network error detection via <span class="mono" style="color:var(--cyan)">isDialNetworkError</span>).</div>
+        <div class="badge-row" style="padding:10px 0 0">
+          <span class="badge b-kyc">GPT-4o</span>
+          <span class="badge b-kyc">Max 600 tokens</span>
+          <span class="badge b-kyc">JSON structured output</span>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-hdr t-kyc-hdr">📡 Event Bus (RabbitMQ)</div>
+      <div class="info-card-body">
+        <div class="step-detail">Receives on <span class="mono" style="color:var(--cyan)">agent.kyc</span> → processes → publishes to <span class="mono" style="color:var(--cyan)">result.kyc</span> which routes to the orchestrator's <span class="mono" style="color:var(--cyan)">QUEUE_AGENT_RESULTS</span>. Runs in parallel with MCC and Risk agents.</div>
+        <div class="badge-row" style="padding:10px 0 0">
+          <span class="badge b-kyc">Parallel processing</span>
+          <span class="badge b-kyc">Async event-driven</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /panel-kyc -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!--  MCC AGENT                                                                -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="panel-mcc" class="agent-panel">
+
+  <div class="hero-card t-mcc-hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-name t-mcc-name">🏷️ MCC Agent</div>
+        <div class="hero-role">Merchant Category Code Classification</div>
+        <div class="hero-desc">
+          Assigns the correct ISO Merchant Category Code (MCC) using a three-layer approach:
+          (1) rule-based lookup from business type, (2) AWS Textract document text scanning for
+          category keywords and risk signals, and (3) RAG-powered classification via the
+          <strong>mcc-analyser</strong> Java microservice (LangChain4j + GPT-4o + handbook vector store).
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Processing Time</div>
+          <div class="hero-stat-value t-mcc-stat">~1.5 s</div>
+          <div class="hero-stat-sub">+ mcc-analyser RAG call</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">AI Service</div>
+          <div class="hero-stat-value t-mcc-stat" style="font-size:14px">mcc-analyser</div>
+          <div class="hero-stat-sub">Java · LangChain4j · RAG · Port 8091</div>
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Queue</div>
+          <div class="hero-stat-value t-mcc-stat mono" style="font-size:13px">mcc.categorization</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">Pass Threshold</div>
+          <div class="hero-stat-value t-mcc-stat mono">≥ 65%</div>
+          <div class="hero-stat-sub">AI confidence score</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Processing Pipeline</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-mcc-hdr">🔄 Step-by-step Execution</div>
+      <div class="info-card-body">
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num t-mcc-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Rule-based MCC Lookup</div>
+              <div class="step-detail">Business type from the application form is uppercased and matched against a static map. If the mapped MCC is a high-risk code (6051 Crypto or 7995 Gambling), score is immediately reduced by 30 pts and escalated.</div>
+              <div class="step-code">RETAIL → 5999 | ECOMMERCE → 5734 | SERVICES → 7299
+MANUFACTURING → 5085 | CRYPTO → 6051 ⚠️ | GAMBLING → 7995 ⚠️</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Textract — High-risk Keyword Scan</div>
+              <div class="step-detail">All extracted document text (full OCR) is searched for high-risk terms. Any match deducts 40 pts and forces MANUAL_REVIEW regardless of AI confidence.</div>
+              <div class="step-code">highRisk = ['gambling','casino','crypto','bitcoin','adult','firearms','tobacco','cannabis']
+flagged = highRisk.filter(kw => allText.includes(kw))
+flagged.length > 0 → score -40, MANUAL_REVIEW</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num">3</div>
+            <div class="step-content">
+              <div class="step-title">Textract — Category Confirmation</div>
+              <div class="step-detail">Positive category keywords are searched in document text to confirm the declared business type. A confirmed match adds a positive finding and +5 pts.</div>
+              <div class="step-code">RETAIL:        ['retail','store','shop','merchandise']
+ECOMMERCE:     ['e-commerce','ecommerce','online store','digital']
+SERVICES:      ['services','consulting','advisory','professional']
+MANUFACTURING: ['manufacturing','production','factory','industrial']</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num">4</div>
+            <div class="step-content">
+              <div class="step-title">mcc-analyser — RAG Classification (with Retry)</div>
+              <div class="step-detail">
+                The agent calls the <strong>mcc-analyser</strong> Java service at <span class="mono" style="color:var(--cyan)">localhost:8091</span>.
+                The service uses LangChain4j to perform RAG over an embedded MCC handbook vector store, then calls GPT-4o to select the best MCC code.
+                The agent retries up to 2 times on failure (exponential backoff).
+              </div>
+              <div class="step-code">POST http://localhost:8091/api/v1/onboarding/classify
+Body: { businessName, businessType, businessDescription, documents[] }
+Response: { mccCode, confidence, reasoning, detectedRisks[], handbookCitation }</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num">5</div>
+            <div class="step-content">
+              <div class="step-title">Score Override from AI Confidence</div>
+              <div class="step-detail">When the mcc-analyser returns a valid (non-fallback) result, the AI confidence score directly replaces the rule-based score. If <span class="mono" style="color:var(--amber)">confidence ≥ 0.65</span>, status stays PASSED. Below 0.65 → MANUAL_REVIEW.</div>
+              <div class="step-code">score = Math.round(confidence * 100)   // e.g. 0.87 → score=87
+if (score &lt; 65 && status === PASSED) status = MANUAL_REVIEW_REQUIRED</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num">6</div>
+            <div class="step-content">
+              <div class="step-title">EPAM AI DIAL — Secondary MCC Validation</div>
+              <div class="step-detail">A secondary DIAL call provides an independent MCC opinion based on business name, type, country, email, and Textract KV pairs. Used for audit trail and override suggestions. Results stored in <span class="mono" style="color:var(--cyan)">dialResponse</span>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-mcc-hdr">🏗️ mcc-analyser Architecture</div>
+      <div class="info-card-body">
+        <div class="step-detail" style="margin-bottom:14px">The mcc-analyser is a standalone Spring Boot microservice that exposes a REST endpoint. Internally it uses a full RAG pipeline:</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num t-mcc-num" style="font-size:9px">A</div>
+            <div class="step-content">
+              <div class="step-title">Document Embedding</div>
+              <div class="step-detail">The MCC handbook (October 2025 edition) is chunked and embedded into an in-memory vector store using LangChain4j + OpenAI embeddings.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num" style="font-size:9px">B</div>
+            <div class="step-content">
+              <div class="step-title">Semantic Retrieval</div>
+              <div class="step-detail">The merchant business description is used as a query to retrieve the top-k most relevant MCC handbook sections from the vector store.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num" style="font-size:9px">C</div>
+            <div class="step-content">
+              <div class="step-title">GPT-4o Classification</div>
+              <div class="step-detail">Retrieved handbook context + merchant data is sent to GPT-4o which selects the best MCC code, provides confidence (0–1), reasoning, detected risks, and a handbook citation.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-mcc-num" style="font-size:9px">D</div>
+            <div class="step-content">
+              <div class="step-title">RabbitMQ Integration</div>
+              <div class="step-detail">The service also consumes tasks from RabbitMQ queue <span class="mono" style="color:var(--cyan)">mcc.tasks</span> for async processing (used by the test endpoint).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="info-card" style="margin-bottom:16px">
+        <div class="info-card-hdr t-mcc-hdr">📊 Score Decision Matrix</div>
+        <div class="dm-grid">
+          <div class="dm-cell" style="border-color:#1a4629;background:#0d2818">
+            <div class="dm-range" style="color:#3fb950">65–100</div>
+            <div class="dm-status" style="color:#3fb950">✅ PASSED</div>
+            <div class="dm-desc">AI confident, no risks detected</div>
+          </div>
+          <div class="dm-cell" style="border-color:#4a3010;background:#2a1d06">
+            <div class="dm-range" style="color:var(--amber)">0–64</div>
+            <div class="dm-status" style="color:var(--amber)">⚠️ MANUAL</div>
+            <div class="dm-desc">Low AI confidence or fallback triggered</div>
+          </div>
+          <div class="dm-cell" style="border-color:#4a1a18;background:#2d0f0e">
+            <div class="dm-range" style="color:var(--red)">any</div>
+            <div class="dm-status" style="color:var(--red)">❌ FAILED</div>
+            <div class="dm-desc">High-risk keywords or detectedRisks from AI</div>
+          </div>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-hdr t-mcc-hdr">🏷️ MCC Code Reference</div>
+        <div class="info-card-body" style="padding:0">
+          <table class="kv-table">
+            <tr><td>5311</td><td>Department Stores (General Retail)</td></tr>
+            <tr><td>5999</td><td>Miscellaneous Retail (catch-all)</td></tr>
+            <tr><td>5734</td><td>Computer / Electronics (e-Commerce)</td></tr>
+            <tr><td>7299</td><td>Miscellaneous Business Services</td></tr>
+            <tr><td>5085</td><td>Industrial Supplies / Manufacturing</td></tr>
+            <tr><td style="color:var(--red)">6051</td><td style="color:var(--red)">⚠️ Crypto / Non-Financial Institutions</td></tr>
+            <tr><td style="color:var(--red)">7995</td><td style="color:var(--red)">⚠️ Gambling / Betting Establishments</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /panel-mcc -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!--  RISK AGENT                                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="panel-risk" class="agent-panel">
+
+  <div class="hero-card t-risk-hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-name t-risk-name">⚖️ Risk Agent</div>
+        <div class="hero-role">Financial Risk &amp; Fraud Detection</div>
+        <div class="hero-desc">
+          The most complex agent in the pipeline. Extracts risk features from Textract document data,
+          calls the <strong>smart-risk-scoring</strong> Java ML service (Weka RandomForest + LLM fraud detection),
+          interprets LIME explainability output, applies fraud signal rules, and aggregates a final
+          risk score with full findings. Country risk and fraud signals are LLM-assessed.
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">ML Model</div>
+          <div class="hero-stat-value t-risk-stat" style="font-size:15px">RandomForest</div>
+          <div class="hero-stat-sub">Weka · 10 features · Port 8080</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">LLM Calls</div>
+          <div class="hero-stat-value t-risk-stat">2</div>
+          <div class="hero-stat-sub">Fraud detection + all reports (single call)</div>
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Processing Time</div>
+          <div class="hero-stat-value t-risk-stat">~60 s</div>
+          <div class="hero-stat-sub">LLM fraud + ML + LIME + reports</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">Explainability</div>
+          <div class="hero-stat-value t-risk-stat" style="font-size:15px">LIME</div>
+          <div class="hero-stat-sub">Top-5 feature contributions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Feature Extraction from Documents</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-risk-hdr">📄 How Risk Features Are Extracted from Textract</div>
+      <div class="info-card-body">
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num t-risk-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Location Extraction</div>
+              <div class="step-detail">Searches KV pairs for keys matching <span class="mono" style="color:var(--amber)">location|address|city|state|country|region</span>. Falls back to application's country field.</div>
+              <div class="step-code">locationKey = KV keys matching /location|address|city|state|country|region/i
+location = allKV[locationKey].split(',')[0]  // first part before comma</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Years in Business Extraction</div>
+              <div class="step-detail">Searches KV keys for incorporation/registration/license dates. Extracts the 4-digit year and computes age. Also scans raw text for patterns like "incorporated 2018". Defaults to 3 years if not found.</div>
+              <div class="step-code">dateKey matches: /date|incorporated|registration date|license date|issue date|valid from/i
+yearMatch = value.match(/\b(19|20)\d{2}\b/)
+yearsInBusiness = currentYear - extractedYear
+
+// Text fallback
+allText.match(/(?:incorporated|established|registered|founded)[^\d]*\b(19...|20..)\b/)</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">3</div>
+            <div class="step-content">
+              <div class="step-title">Transaction Volume Extraction</div>
+              <div class="step-detail">KV pairs with keys matching <span class="mono" style="color:var(--amber)">volume|revenue|turnover|sales|transaction</span> are parsed for numeric values. Defaults to $50,000/month.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Chargeback Rate Extraction</div>
+              <div class="step-detail">Searches for <span class="mono" style="color:var(--amber)">chargeback|dispute|refund</span> KV pairs. Handles both decimal (0.002) and percentage (0.20%) formats automatically.</div>
+              <div class="step-code">val = parseFloat(numMatch[0])
+chargebackRate = (raw.includes('%') || val > 1) ? val / 100 : val
+// e.g. "0.20%" → 0.002 | "0.002" → 0.002 | "1.00%" → 0.01</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">5</div>
+            <div class="step-content">
+              <div class="step-title">Compliance Score Extraction (Priority Order)</div>
+              <div class="step-detail">
+                <strong>Priority 1:</strong> Explicit KV pair — keys matching <span class="mono" style="color:var(--amber)">compliance score|compliance rating|aml score</span> → uses raw value.<br><br>
+                <strong>Priority 2:</strong> Text-signal boosted formula — scans document body for positive compliance phrases and accumulates bonus points on top of base score.
+              </div>
+              <div class="step-code">// Priority 1 — explicit KV
+complianceScore = (val > 10) ? val : val * 10  // handles 0-10 and 0-100 scales
+
+// Priority 2 — text signal boosts (base = 50 + docs*5 + website?10:0)
++10  "tax clearance" or "tax compliance certificate"
++8   "certificate of incorporation" or "duly registered"
++8   "good standing" or "in good standing"
++10  "aml compliant" or "kyc compliant" or "pci"
++5   "licensed" or "business license"
++5   "no criminal" or "clear record"
++8   KV key matches /clearance|certified|license|permit|registration/</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">smart-risk-scoring Pipeline (Java ML Service)</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-risk-hdr">🔬 Internal ML + LLM Pipeline (Port 8080)</div>
+      <div class="info-card-body">
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num t-risk-num">0</div>
+            <div class="step-content">
+              <div class="step-title">LLM Fraud Detection + Country Risk (Single GPT-4o Call)</div>
+              <div class="step-detail">A single LLM call analyses 8 fraud checks and geographic risk simultaneously. Returns structured JSON with fraud signals and country risk score (0–100). If LLM fails, falls back to rule-based fraud detection.</div>
+              <div class="step-code">Fraud checks: HIGH_CHARGEBACK, BUST_OUT, CNP_RISK, AML_FLAG,
+             SHELL_COMPANY, INDUSTRY_RISK, STRUCTURING, VELOCITY_ANOMALY
+Country:  riskLevel, score, regulatoryNote, recommendations[]</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Feature Encoding (10 features → Weka ML)</div>
+              <div class="step-detail">10 features are encoded into a double[] for the RandomForest model. Business type and location are ordinal-encoded from training data distributions.</div>
+              <div class="step-code">features[0]  = businessType (encoded ordinal)
+features[1]  = transactionVolume
+features[2]  = location (encoded ordinal)
+features[3]  = chargebackRate
+features[4]  = yearsInBusiness
+features[5]  = averageTransactionSize
+features[6]  = fraudFlag  (0 or 1 — from LLM step)
+features[7]  = complianceScore
+features[8]  = fraudSeverity  (0=NONE → 4=CRITICAL)
+features[9]  = countryRiskScore  (0–100 from LLM)</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Weka RandomForest Prediction</div>
+              <div class="step-detail">The trained model (risk_model.ser) predicts the risk class and returns probability distribution across Low/Medium/High risk labels.</div>
+              <div class="step-code">riskLabel   = inference.predictFromFeatures(features)  // "Low"|"Medium"|"High"
+probabilities = inference.predictProbabilities(features) // [pLow, pMed, pHigh]</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">3</div>
+            <div class="step-content">
+              <div class="step-title">LIME Explainability</div>
+              <div class="step-detail">LIME perturbs the input features and fits a local linear model to explain which features most influenced the prediction. Top-5 feature contributions (with weight, direction, impact level) are returned.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Composite Risk Score Formula</div>
+              <div class="step-detail">A 0–100 raw risk score is computed from the probability, chargeback rate, compliance score, fraud signals, volume, and business age. This score is then <strong>inverted</strong> (100 − riskScore) to produce the safety score shown in the UI.</div>
+              <div class="step-code">modelScore      = probHigh * 50            // 0–50 pts
+chargebackScore = min(cbRate/0.15, 1) * 15  // 0–15 pts
+complianceScore = max(0,(100-compliance)/100) * 15  // 0–15 pts
+fraudScore      = min(fraudSignals, 4) * 2.5        // 0–10 pts
+volumeScore     = min(volume/200000, 1) * 5         // 0–5 pts
+ageScore        = max(0,(5-years)/5) * 5            // 0–5 pts
+total           = sum (0–100, clamped)
+uiScore         = 100 - total  // higher = safer</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-risk-num">5</div>
+            <div class="step-content">
+              <div class="step-title">LLM Reports (Single GPT-4o Call — 7 Reports)</div>
+              <div class="step-detail">All 7 reports are generated in a single LLM call using delimiter-separated output. Max 4,000 tokens.</div>
+              <div class="step-code">===ANALYST_REPORT===     200-300 words risk assessment
+===COMPLIANCE_REPORT===  Full regulatory analysis (BSA/AML, PCI-DSS)
+===SALES_REPORT===       &lt;150 words for sales rep
+===MERCHANT_NOTIFICATION=== &lt;100 words friendly merchant message
+===EXECUTIVE_BRIEF===    &lt;50 words C-suite dashboard
+===ANOMALY_DESCRIPTION=== 100-150 words fraud analyst view
+===OVERRIDE_SUGGESTION=== OVERRIDE_RECOMMENDED or NO_OVERRIDE + reason
+===CONSISTENCY_SCORE===  { score, llmVerdict, mlVerdict, agrees, reason }</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Fraud Detection Rules &amp; Thresholds</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-risk-hdr">🚨 Fraud Signal Checks (FraudRulesConfig)</div>
+      <div class="info-card-body" style="padding:0">
+        <table class="sig-table">
+          <thead>
+            <tr><th>Signal Code</th><th>Condition</th><th>Threshold (default)</th><th>Impact</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="code">HIGH_CHARGEBACK</td>
+              <td>Chargeback rate exceeds threshold</td>
+              <td class="threshold">cbRate &gt; 0.05 (5%)</td>
+              <td><span class="badge b-red" style="font-size:9px">fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">BUST_OUT_PATTERN</td>
+              <td>New business (&le;2 yrs) with high volume (&gt;$100K)</td>
+              <td class="threshold">years &le; 2 AND vol &gt; $100,000</td>
+              <td><span class="badge b-red" style="font-size:9px">fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">CNP_FRAUD_RISK</td>
+              <td>Online merchant with high average transaction</td>
+              <td class="threshold">type=Online AND avgTxn &gt; $500</td>
+              <td><span class="badge b-orange" style="font-size:9px">fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">AML_FLAG</td>
+              <td>Low compliance + high transaction volume</td>
+              <td class="threshold">compliance &lt; 40 AND vol &gt; $80,000</td>
+              <td><span class="badge b-red" style="font-size:9px">fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">SHELL_COMPANY</td>
+              <td>Very new business with poor compliance</td>
+              <td class="threshold">years &le; 1 AND compliance &lt; 50</td>
+              <td><span class="badge b-red" style="font-size:9px">fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">INDUSTRY_RISK</td>
+              <td>High-risk vertical + elevated chargeback</td>
+              <td class="threshold">type in [Travel,Subscription] AND cbRate &gt; 0.03</td>
+              <td><span class="badge b-orange" style="font-size:9px">fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">STRUCTURING</td>
+              <td>LLM-detected structuring patterns</td>
+              <td class="threshold">LLM-assessed</td>
+              <td><span class="badge b-red" style="font-size:9px">LLM fraud indicator</span></td>
+            </tr>
+            <tr>
+              <td class="code">VELOCITY_ANOMALY</td>
+              <td>Volume/age ratio anomaly</td>
+              <td class="threshold">LLM-assessed</td>
+              <td><span class="badge b-orange" style="font-size:9px">LLM fraud indicator</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col mt16">
+    <div class="info-card">
+      <div class="info-card-hdr t-risk-hdr">📊 Risk Decision Matrix</div>
+      <div class="dm-grid">
+        <div class="dm-cell" style="border-color:#1a4629;background:#0d2818">
+          <div class="dm-range" style="color:#3fb950">High</div>
+          <div class="dm-status" style="color:#3fb950">⛔ DECLINED</div>
+          <div class="dm-desc">ML label = High → always declined</div>
+        </div>
+        <div class="dm-cell" style="border-color:#4a3010;background:#2a1d06">
+          <div class="dm-range" style="color:var(--amber)">Medium</div>
+          <div class="dm-status" style="color:var(--amber)">⚠️ CONDITIONAL</div>
+          <div class="dm-desc">Score &lt;50 → manual review; ≥50 → passed</div>
+        </div>
+        <div class="dm-cell" style="border-color:#1a4629;background:#0d2818">
+          <div class="dm-range" style="color:#3fb950">Low</div>
+          <div class="dm-status" style="color:#3fb950">✅ APPROVED</div>
+          <div class="dm-desc">ML label = Low → approved</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-hdr t-risk-hdr">🌍 Country Risk (LLM-assessed)</div>
+      <div class="info-card-body" style="padding:0">
+        <table class="kv-table">
+          <tr><td>Miami</td><td style="color:var(--red)">ELEVATED — score 70/100</td></tr>
+          <tr><td>NewYork</td><td style="color:var(--amber)">MODERATE — score 50/100</td></tr>
+          <tr><td>Chicago</td><td style="color:var(--amber)">MODERATE — score 45/100</td></tr>
+          <tr><td>Dallas</td><td style="color:var(--green)">LOW — score 35/100</td></tr>
+          <tr><td>SanJose</td><td style="color:var(--green)">LOW — score 30/100</td></tr>
+          <tr><td>India / Unknown</td><td style="color:var(--amber)">LLM-assessed dynamically</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /panel-risk -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!--  ORCHESTRATOR                                                             -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div id="panel-orch" class="agent-panel">
+
+  <div class="hero-card t-orch-hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-name t-orch-name">🎼 Orchestrator</div>
+        <div class="hero-role">Event-Driven Agent Coordinator &amp; Decision Engine</div>
+        <div class="hero-desc">
+          The Orchestrator does not process merchant data directly — it coordinates all three agents
+          by publishing parallel events, collecting results as they arrive asynchronously, aggregating
+          scores, and making the final onboarding decision. It also manages the audit trail
+          and fires the completion callback to update MongoDB.
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Parallel Agents</div>
+          <div class="hero-stat-value t-orch-stat">3</div>
+          <div class="hero-stat-sub">KYC + MCC + Risk (simultaneous)</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">Pattern</div>
+          <div class="hero-stat-value t-orch-stat" style="font-size:14px">Event-Driven</div>
+          <div class="hero-stat-sub">Scatter-gather via RabbitMQ</div>
+        </div>
+      </div>
+      <div class="stats-col">
+        <div>
+          <div class="hero-stat-label">Decision Queue</div>
+          <div class="hero-stat-value t-orch-stat mono" style="font-size:12px">agent.results</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">Storage</div>
+          <div class="hero-stat-value t-orch-stat" style="font-size:14px">MongoDB</div>
+          <div class="hero-stat-sub">Application + audit log persistence</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Event Flow &amp; Coordination</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-orch-hdr">📡 Event-Driven Scatter-Gather Pattern</div>
+      <div class="flow-diagram">
+        <!-- Row 1: Trigger -->
+        <div class="flow-row-d" style="justify-content:center; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--teal);background:#082020;color:var(--teal)">📋 Application Submitted</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+        </div>
+        <!-- Row 2: Orchestrator publish -->
+        <div class="flow-row-d" style="justify-content:center; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--teal);background:#082020;color:var(--teal)">🎼 Orchestrator.processApplication()</div>
+            <div class="flow-label">Publishes 3 parallel events</div>
+          </div>
+        </div>
+        <!-- Row 3: 3 queues -->
+        <div class="flow-row-d" style="justify-content:center;gap:40px; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--blue);background:#0d1929;color:var(--blue)">📨 agent.kyc</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--purple);background:#160f2a;color:var(--purple)">📨 agent.mcc</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--amber);background:#1a1400;color:var(--amber)">📨 agent.risk</div>
+          </div>
+        </div>
+        <!-- Row 4: 3 agents -->
+        <div class="flow-row-d" style="justify-content:center;gap:40px; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--blue);background:#0d1929;color:var(--blue)">🪪 KYC Agent</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--purple);background:#160f2a;color:var(--purple)">🏷️ MCC Agent</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--amber);background:#1a1400;color:var(--amber)">⚖️ Risk Agent</div>
+          </div>
+        </div>
+        <!-- Row 5: result events -->
+        <div class="flow-row-d" style="justify-content:center;gap:40px; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--blue);background:#0d1929;color:var(--blue)">📨 result.kyc</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--purple);background:#160f2a;color:var(--purple)">📨 result.mcc</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--amber);background:#1a1400;color:var(--amber)">📨 result.risk</div>
+          </div>
+        </div>
+        <!-- Row 6: Gather -->
+        <div class="flow-row-d" style="justify-content:center; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--teal);background:#082020;color:var(--teal)">🎼 handleAgentResult() × 3</div>
+            <div class="flow-label">Waits until results.size === 3</div>
+          </div>
+        </div>
+        <!-- Row 7: Aggregate -->
+        <div class="flow-row-d" style="justify-content:center; margin-bottom:8px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--teal);background:#082020;color:var(--teal)">📊 aggregateResults() → makeDecision()</div>
+          </div>
+        </div>
+        <!-- Row 8: Final -->
+        <div class="flow-row-d" style="justify-content:center;gap:40px">
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:#3fb950;background:#0d2818;color:#3fb950">✅ APPROVED</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--amber);background:#2a1d06;color:var(--amber)">⚠️ MANUAL REVIEW</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-box" style="border-color:var(--red);background:#2d0f0e;color:var(--red)">❌ REJECTED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Aggregation &amp; Decision Logic</div>
+  <div class="two-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-orch-hdr">🧮 Decision Rules (makeDecision)</div>
+      <div class="info-card-body">
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num t-orch-num">R1</div>
+            <div class="step-content">
+              <div class="step-title">Any agent FAILED → REJECTED</div>
+              <div class="step-detail">If KYC, MCC, or Risk agent returns status=FAILED, the final decision is REJECTED regardless of other agent scores.</div>
+              <div class="step-code">results.some(r => r.status === 'FAILED') → REJECTED</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-orch-num">R2</div>
+            <div class="step-content">
+              <div class="step-title">Any agent MANUAL_REVIEW → MANUAL_REVIEW</div>
+              <div class="step-detail">If any agent flags for human review (and none failed), the application goes to manual review queue.</div>
+              <div class="step-code">results.some(r => r.status === 'MANUAL_REVIEW_REQUIRED') → MANUAL_REVIEW</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-orch-num">R3</div>
+            <div class="step-content">
+              <div class="step-title">Average Score &lt; 60 → MANUAL_REVIEW</div>
+              <div class="step-detail">Even if all agents pass individually, a low average score across all three agents triggers manual review.</div>
+              <div class="step-code">avgScore = (kycScore + mccScore + riskScore) / 3
+avgScore &lt; 60 → MANUAL_REVIEW</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num t-orch-num">R4</div>
+            <div class="step-content">
+              <div class="step-title">All PASSED + avg ≥ 60 → APPROVED</div>
+              <div class="step-detail">All three agents passed with sufficient average score. Application is auto-approved and merchant is notified.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="info-card" style="margin-bottom:16px">
+        <div class="info-card-hdr t-orch-hdr">📝 Audit Trail</div>
+        <div class="info-card-body">
+          <div class="step-detail">Every state transition is recorded in the application's <span class="mono" style="color:var(--cyan)">auditLog[]</span> array persisted in MongoDB:</div>
+          <div class="check-list" style="margin-top:12px">
+            <div class="check-item">
+              <div class="check-icon">📌</div>
+              <div class="check-main">
+                <div class="check-title">PROCESSING_STARTED</div>
+                <div class="check-desc">Fired when orchestrator begins. Records applicationId, eventDriven=true.</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon">📌</div>
+              <div class="check-main">
+                <div class="check-title">KYC_COMPLETED / MCC_COMPLETED / RISK_COMPLETED</div>
+                <div class="check-desc">Fired as each agent result arrives. Records status, score, all findings, and full DIAL response.</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon">📌</div>
+              <div class="check-main">
+                <div class="check-title">DECISION_MADE</div>
+                <div class="check-desc">Final decision, final status, and overall summary recorded.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-hdr t-orch-hdr">🗄️ Storage (storage.ts)</div>
+        <div class="info-card-body">
+          <div class="step-detail">All applications are persisted to <strong>MongoDB</strong> via <span class="mono" style="color:var(--cyan)">Application</span> Mongoose model. The storage layer supports:</div>
+          <div class="badge-row" style="padding:12px 0 0">
+            <span class="badge b-orch">Create</span>
+            <span class="badge b-orch">Update status</span>
+            <span class="badge b-orch">Save agent results</span>
+            <span class="badge b-orch">Audit log append</span>
+            <span class="badge b-orch">List by status</span>
+            <span class="badge b-orch">Review console query</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELEMETRY -->
+  <div class="section-label mt16">Telemetry</div>
+  <div class="full-col">
+    <div class="info-card">
+      <div class="info-card-hdr t-orch-hdr">📡 TelemetryService — AI Usage Tracking</div>
+      <div class="info-card-body">
+        <div class="step-detail" style="margin-bottom:14px">Each LLM call made by any agent is recorded in-memory and exposed via <span class="mono" style="color:var(--cyan)">GET /api/telemetry/report</span>. The frontend Telemetry Dashboard reads this endpoint.</div>
+        <div class="three-col" style="gap:14px;margin-bottom:0">
+          <div>
+            <div class="hero-stat-label" style="margin-bottom:6px">Per-call record</div>
+            <div class="step-code" style="margin-top:0">service, model, agent
+purpose, promptTokens
+completionTokens, totalTokens
+tokensEstimated, latencyMs
+estimatedCostUsd, timestamp</div>
+          </div>
+          <div>
+            <div class="hero-stat-label" style="margin-bottom:6px">Aggregated per application</div>
+            <div class="step-code" style="margin-top:0">totalCalls
+totalPromptTokens
+totalCompletionTokens
+totalTokens, totalCostUsd
+avgLatencyMs, byAgent{}</div>
+          </div>
+          <div>
+            <div class="hero-stat-label" style="margin-bottom:6px">Endpoints</div>
+            <div class="step-code" style="margin-top:0">GET /api/telemetry/report
+GET /api/telemetry/:appId
+DELETE /api/telemetry/:appId</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /panel-orch -->
+
+
+<script>
+function showTab(name, btn) {
+  // Hide all panels
+  document.querySelectorAll('.agent-panel').forEach(p => p.classList.remove('visible'));
+  // Remove active from all buttons
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  // Show selected
+  document.getElementById('panel-' + name).classList.add('visible');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "mappings": [
+    {
+      "name": "Onfido - Create Applicant (PASS)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/onfido/v3.6/applicants"
+      },
+      "response": {
+        "status": 201,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "id": "applicant-stub-XXXXXXXX",
+          "created_at": "2026-01-01T00:00:00Z",
+          "sandbox": true,
+          "first_name": "Merchant",
+          "last_name": "Applicant",
+          "dob": null,
+          "id_numbers": [],
+          "address": null
+        }
+      }
+    },
+    {
+      "name": "Onfido - Create Check (identity PASS)",
+      "request": {
+        "method": "POST",
+        "urlPattern": "/onfido/v3.6/checks"
+      },
+      "response": {
+        "status": 201,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "id": "check-XXXXXXXX",
+          "created_at": "2026-01-01T00:00:00Z",
+          "status": "complete",
+          "result": "clear",
+          "sandbox": true,
+          "applicant_id": "applicant-stub",
+          "reports": [
+            {
+              "id": "report-stub",
+              "name": "identity_enhanced",
+              "status": "complete",
+              "result": "clear",
+              "breakdown": {
+                "data_comparison": { "result": "clear" },
+                "data_consistency": { "result": "clear" },
+                "data_validation": { "result": "clear" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
